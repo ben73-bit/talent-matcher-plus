@@ -1,12 +1,71 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { Dashboard } from "@/components/Dashboard";
 import { CandidateList } from "@/components/CandidateList";
 import { AddCandidate } from "@/components/AddCandidate";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Building2, LogIn } from "lucide-react";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
+
+  // Redirect to auth if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+
+  // Show loading state while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-2">
+            <div className="bg-gradient-primary p-3 rounded-lg">
+              <Building2 className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-foreground">TalentHub</h1>
+          </div>
+          <p className="text-muted-foreground">Caricamento...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login prompt if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
+        <div className="text-center space-y-6 max-w-md">
+          <div className="space-y-2">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="bg-gradient-primary p-3 rounded-lg">
+                <Building2 className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-3xl font-bold text-foreground">TalentHub</h1>
+            </div>
+            <p className="text-muted-foreground">
+              Accedi per gestire i tuoi candidati e posizioni lavorative
+            </p>
+          </div>
+          <Button 
+            onClick={() => navigate('/auth')}
+            className="w-full"
+            size="lg"
+          >
+            <LogIn className="mr-2 h-5 w-5" />
+            Accedi
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const renderContent = () => {
     switch (activeTab) {
