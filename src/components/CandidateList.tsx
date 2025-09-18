@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Search, 
   Filter, 
@@ -28,100 +28,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCandidates, Candidate } from "@/hooks/useCandidates";
+import { useAuth } from "@/hooks/useAuth";
 
-interface Candidate {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  position: string;
-  location: string;
-  experience: string;
-  skills: string[];
-  status: 'new' | 'screening' | 'interview' | 'hired' | 'rejected';
-  score: number;
-  appliedDate: string;
-  rating: number;
-}
-
-const mockCandidates: Candidate[] = [
-  {
-    id: 1,
-    name: "Marco Rossi",
-    email: "marco.rossi@email.com",
-    phone: "+39 123 456 7890",
-    position: "Frontend Developer",
-    location: "Milano, IT",
-    experience: "5+ anni",
-    skills: ["React", "TypeScript", "Next.js", "CSS"],
-    status: "interview",
-    score: 85,
-    appliedDate: "2024-09-14",
-    rating: 4
-  },
-  {
-    id: 2,
-    name: "Laura Bianchi",
-    email: "laura.bianchi@email.com", 
-    phone: "+39 098 765 4321",
-    position: "UX Designer",
-    location: "Roma, IT",
-    experience: "3+ anni",
-    skills: ["Figma", "Adobe XD", "User Research", "Prototyping"],
-    status: "screening",
-    score: 92,
-    appliedDate: "2024-09-13",
-    rating: 5
-  },
-  {
-    id: 3,
-    name: "Alessandro Verde",
-    email: "alessandro.verde@email.com",
-    phone: "+39 111 222 3333",
-    position: "Backend Developer", 
-    location: "Torino, IT",
-    experience: "7+ anni",
-    skills: ["Python", "Django", "PostgreSQL", "Docker"],
-    status: "hired",
-    score: 88,
-    appliedDate: "2024-09-10",
-    rating: 4
-  },
-  {
-    id: 4,
-    name: "Sofia Neri",
-    email: "sofia.neri@email.com",
-    phone: "+39 444 555 6666", 
-    position: "Product Manager",
-    location: "Napoli, IT",
-    experience: "4+ anni",
-    skills: ["Strategy", "Analytics", "Agile", "Leadership"],
-    status: "new",
-    score: 78,
-    appliedDate: "2024-09-12",
-    rating: 4
-  },
-  {
-    id: 5,
-    name: "Luca Gialli",
-    email: "luca.gialli@email.com",
-    phone: "+39 777 888 9999",
-    position: "DevOps Engineer",
-    location: "Bologna, IT", 
-    experience: "6+ anni",
-    skills: ["AWS", "Kubernetes", "Terraform", "CI/CD"],
-    status: "interview",
-    score: 90,
-    appliedDate: "2024-09-11",
-    rating: 5
-  }
-];
-
+// Status mapping for display
 const getStatusBadge = (status: Candidate['status']) => {
   const statusMap = {
     new: { label: 'Nuovo', variant: 'secondary' as const },
-    screening: { label: 'Screening', variant: 'default' as const },
-    interview: { label: 'Colloquio', variant: 'outline' as const },
+    contacted: { label: 'Contattato', variant: 'default' as const },
+    interviewed: { label: 'Colloquio', variant: 'outline' as const },
     hired: { label: 'Assunto', variant: 'default' as const },
     rejected: { label: 'Scartato', variant: 'destructive' as const }
   };
@@ -130,39 +45,44 @@ const getStatusBadge = (status: Candidate['status']) => {
   return (
     <Badge variant={config.variant} className={
       status === 'hired' ? 'bg-success text-success-foreground' :
-      status === 'screening' ? 'bg-warning text-warning-foreground' : ''
+      status === 'contacted' ? 'bg-warning text-warning-foreground' : ''
     }>
       {config.label}
     </Badge>
   );
 };
 
+
 interface CandidateListProps {
-  onViewCandidate?: (candidateId: number) => void;
+  onViewCandidate?: (candidateId: string) => void;
 }
 
 export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
+  const { user } = useAuth();
+  const { candidates, loading, deleteCandidate, updateCandidate } = useCandidates();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("recent");
 
-  const filteredCandidates = mockCandidates
+  const filteredCandidates = candidates
     .filter(candidate => {
-      const matchesSearch = candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           candidate.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           candidate.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
+      const fullName = `${candidate.first_name} ${candidate.last_name}`.toLowerCase();
+      const position = candidate.position?.toLowerCase() || '';
+      const skills = candidate.skills || [];
+      
+      const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
+                           position.includes(searchTerm.toLowerCase()) ||
+                           skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesStatus = statusFilter === "all" || candidate.status === statusFilter;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case 'score':
-          return b.score - a.score;
         case 'name':
-          return a.name.localeCompare(b.name);
+          return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
         case 'recent':
         default:
-          return new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime();
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
     });
 
@@ -207,8 +127,8 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
           <SelectContent>
             <SelectItem value="all">Tutti gli stati</SelectItem>
             <SelectItem value="new">Nuovi</SelectItem>
-            <SelectItem value="screening">In Screening</SelectItem>
-            <SelectItem value="interview">Colloquio</SelectItem>
+            <SelectItem value="contacted">Contattati</SelectItem>
+            <SelectItem value="interviewed">Intervistati</SelectItem>
             <SelectItem value="hired">Assunti</SelectItem>
             <SelectItem value="rejected">Scartati</SelectItem>
           </SelectContent>
@@ -220,11 +140,24 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="recent">Più recenti</SelectItem>
-            <SelectItem value="score">Punteggio</SelectItem>
             <SelectItem value="name">Nome</SelectItem>
           </SelectContent>
         </Select>
       </div>
+
+      {/* Loading */}
+      {loading && (
+        <div className="flex justify-center items-center py-12">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
+      {/* No candidates message */}
+      {!loading && candidates.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Nessun candidato trovato. Aggiungi il tuo primo candidato!</p>
+        </div>
+      )}
 
       {/* Candidates Grid */}
       <div className="grid gap-4">
@@ -235,75 +168,64 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
                 <div className="flex items-start space-x-4">
                   {/* Avatar */}
                   <div className="h-12 w-12 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-medium text-lg">
-                    {candidate.name.split(' ').map(n => n[0]).join('')}
+                    {candidate.first_name[0]}{candidate.last_name[0]}
                   </div>
                   
                   {/* Main Info */}
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center space-x-3">
                       <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-fast">
-                        {candidate.name}
+                        {candidate.first_name} {candidate.last_name}
                       </h3>
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < candidate.rating 
-                                ? 'text-warning fill-current' 
-                                : 'text-muted-foreground'
-                            }`}
-                          />
-                        ))}
-                      </div>
                     </div>
                     
-                    <p className="text-primary font-medium">{candidate.position}</p>
+                    <p className="text-primary font-medium">{candidate.position || 'Posizione non specificata'}</p>
                     
                     <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                       <div className="flex items-center">
                         <Mail className="mr-1 h-3 w-3" />
                         {candidate.email}
                       </div>
-                      <div className="flex items-center">
-                        <Phone className="mr-1 h-3 w-3" />
-                        {candidate.phone}
-                      </div>
-                      <div className="flex items-center">
-                        <MapPin className="mr-1 h-3 w-3" />
-                        {candidate.location}
-                      </div>
+                      {candidate.phone && (
+                        <div className="flex items-center">
+                          <Phone className="mr-1 h-3 w-3" />
+                          {candidate.phone}
+                        </div>
+                      )}
+                      {candidate.company && (
+                        <div className="flex items-center">
+                          <MapPin className="mr-1 h-3 w-3" />
+                          {candidate.company}
+                        </div>
+                      )}
                     </div>
                     
-                    <div className="flex items-center space-x-2 mt-3">
-                      <span className="text-sm text-muted-foreground">Competenze:</span>
-                      <div className="flex flex-wrap gap-1">
-                        {candidate.skills.slice(0, 4).map((skill, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {skill}
-                          </Badge>
-                        ))}
-                        {candidate.skills.length > 4 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{candidate.skills.length - 4}
-                          </Badge>
-                        )}
+                    {candidate.skills && candidate.skills.length > 0 && (
+                      <div className="flex items-center space-x-2 mt-3">
+                        <span className="text-sm text-muted-foreground">Competenze:</span>
+                        <div className="flex flex-wrap gap-1">
+                          {candidate.skills.slice(0, 4).map((skill, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                          {candidate.skills.length > 4 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{candidate.skills.length - 4}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
                 
                 {/* Right Side */}
                 <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-foreground">{candidate.score}%</div>
-                    <div className="text-xs text-muted-foreground">Match</div>
-                  </div>
-                  
                   <div className="text-right space-y-2">
                     {getStatusBadge(candidate.status)}
                     <div className="text-xs text-muted-foreground">
-                      {new Date(candidate.appliedDate).toLocaleDateString('it-IT')}
+                      {new Date(candidate.created_at).toLocaleDateString('it-IT')}
                     </div>
                   </div>
                   
@@ -323,10 +245,27 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
                         Invia Email
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem>
-                        Modifica Stato
+                      <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'contacted' })}>
+                        Segna come Contattato
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
+                      <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'interviewed' })}>
+                        Segna come Intervistato
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'hired' })}>
+                        Segna come Assunto
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'rejected' })}>
+                        Segna come Scartato
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        className="text-destructive"
+                        onClick={() => {
+                          if (confirm('Sei sicuro di voler eliminare questo candidato?')) {
+                            deleteCandidate(candidate.id);
+                          }
+                        }}
+                      >
                         Elimina
                       </DropdownMenuItem>
                     </DropdownMenuContent>

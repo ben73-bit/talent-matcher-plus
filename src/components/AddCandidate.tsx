@@ -24,6 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCandidates } from "@/hooks/useCandidates";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AddCandidateProps {
   onBack: () => void;
@@ -31,14 +33,18 @@ interface AddCandidateProps {
 
 export const AddCandidate = ({ onBack }: AddCandidateProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { createCandidate } = useCandidates();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     position: "",
-    location: "",
+    company: "",
     experience: "",
     skills: [] as string[],
     notes: ""
@@ -62,14 +68,15 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
     // Simulate AI processing
     setTimeout(() => {
       const mockExtractedData = {
-        name: "Mario Verdi",
+        firstName: "Mario",
+        lastName: "Verdi",
         email: "mario.verdi@email.com",
         phone: "+39 333 444 5555",
         position: "Full Stack Developer",
-        location: "Milano, IT",
+        company: "TechCorp",
         experience: "5+ anni",
         skills: ["React", "Node.js", "MongoDB", "TypeScript", "AWS", "Docker"],
-        summary: "Sviluppatore full stack con 5 anni di esperienza nel settore fintech. Esperto in React e Node.js con competenze in architetture cloud."
+        notes: "Sviluppatore full stack con 5 anni di esperienza nel settore fintech. Esperto in React e Node.js con competenze in architetture cloud."
       };
       
       setExtractedData(mockExtractedData);
@@ -83,26 +90,61 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
     }, 2000);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    toast({
-      title: "Candidato Aggiunto",
-      description: `${formData.name} è stato aggiunto con successo`,
-    });
+    if (!user) {
+      toast({
+        title: "Errore",
+        description: "Devi essere autenticato per aggiungere candidati",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    // Reset form
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      position: "",
-      location: "",
-      experience: "",
-      skills: [],
-      notes: ""
-    });
-    setExtractedData(null);
+    setIsSubmitting(true);
+    
+    try {
+      // Convert experience to years number
+      const experienceYears = formData.experience ? 
+        parseInt(formData.experience.split(' ')[0]) || 0 : 0;
+      
+      const candidate = await createCandidate({
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        position: formData.position,
+        company: formData.company,
+        experience_years: experienceYears,
+        skills: formData.skills,
+        notes: formData.notes,
+        status: 'new'
+      });
+      
+      if (candidate) {
+        // Reset form on success
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          position: "",
+          company: "",
+          experience: "",
+          skills: [],
+          notes: ""
+        });
+        setExtractedData(null);
+        
+        // Go back to candidate list
+        onBack();
+      }
+    } catch (error) {
+      console.error('Error adding candidate:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const addSkill = (skill: string) => {
@@ -211,24 +253,34 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome Completo</Label>
+                  <Label htmlFor="firstName">Nome</Label>
                   <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    id="firstName"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="lastName">Cognome</Label>
                   <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    id="lastName"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
                     required
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  required
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -241,12 +293,12 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="location">Posizione</Label>
+                  <Label htmlFor="company">Azienda</Label>
                   <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                    placeholder="Milano, IT"
+                    id="company"
+                    value={formData.company}
+                    onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                    placeholder="Nome azienda"
                   />
                 </div>
               </div>
@@ -335,9 +387,9 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
                 <Button type="button" variant="outline" onClick={onBack}>
                   Annulla
                 </Button>
-                <Button type="submit" className="bg-gradient-primary hover:opacity-90">
+                <Button type="submit" className="bg-gradient-primary hover:opacity-90" disabled={isSubmitting}>
                   <User className="mr-2 h-4 w-4" />
-                  Aggiungi Candidato
+                  {isSubmitting ? "Aggiungendo..." : "Aggiungi Candidato"}
                 </Button>
               </div>
             </form>
