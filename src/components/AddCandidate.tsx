@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AddCandidateProps {
   onBack: () => void;
@@ -65,29 +66,48 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
 
     setIsProcessing(true);
     
-    // Simulate AI processing
-    setTimeout(() => {
-      const mockExtractedData = {
-        firstName: "Mario",
-        lastName: "Verdi",
-        email: "mario.verdi@email.com",
-        phone: "+39 333 444 5555",
-        position: "Full Stack Developer",
-        company: "TechCorp",
-        experience: "5+ anni",
-        skills: ["React", "Node.js", "MongoDB", "TypeScript", "AWS", "Docker"],
-        notes: "Sviluppatore full stack con 5 anni di esperienza nel settore fintech. Esperto in React e Node.js con competenze in architetture cloud."
-      };
+    try {
+      console.log('Starting CV analysis with file:', file.name);
       
-      setExtractedData(mockExtractedData);
-      setFormData(prev => ({ ...prev, ...mockExtractedData }));
-      setIsProcessing(false);
+      // Create FormData to send the file
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Call the Supabase edge function
+      const { data, error } = await supabase.functions.invoke('parse-cv', {
+        body: formData,
+      });
+      
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error('Errore nella chiamata al servizio di parsing');
+      }
+      
+      console.log('Response from parse-cv:', data);
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Errore nell\'analisi del CV');
+      }
+      
+      const extractedData = data.data;
+      setExtractedData(extractedData);
+      setFormData(prev => ({ ...prev, ...extractedData }));
       
       toast({
         title: "CV Analizzato",
         description: "Le informazioni sono state estratte automaticamente dal CV",
       });
-    }, 2000);
+      
+    } catch (error) {
+      console.error('Error parsing CV:', error);
+      toast({
+        title: "Errore",
+        description: error instanceof Error ? error.message : "Errore nell'analisi del CV",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
