@@ -46,12 +46,12 @@ serve(async (req) => {
     
     console.log('Text extracted from PDF:', textContent.substring(0, 500) + '...');
 
-    // Use OpenAI to analyze the extracted text
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    // Use Google AI (Gemini) to analyze the extracted text
+    const googleAIApiKey = Deno.env.get('GOOGLE_AI_API_KEY');
     let parsedData;
 
-    if (!openAIApiKey) {
-      console.log('OpenAI API key not configured, using fallback parsing');
+    if (!googleAIApiKey) {
+      console.log('Google AI API key not configured, using fallback parsing');
       parsedData = await fallbackParsing(textContent, file.name);
     } else {
       try {
@@ -72,57 +72,54 @@ ${textContent}
 
 Rispondi SOLO con un JSON valido, senza altre spiegazioni:`;
 
-        console.log('Sending request to OpenAI');
+        console.log('Sending request to Google AI (Gemini)');
 
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${googleAIApiKey}`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${openAIApiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: 'Sei un esperto nell\'analisi di CV. Estrai sempre le informazioni richieste in formato JSON valido. Se un\'informazione non è disponibile, usa una stringa vuota o array vuoto.'
-              },
-              {
-                role: 'user',
-                content: prompt
-              }
-            ],
-            temperature: 0.1,
-            max_tokens: 1000
+            contents: [{
+              parts: [{
+                text: `Sei un esperto nell'analisi di CV. Estrai sempre le informazioni richieste in formato JSON valido. Se un'informazione non è disponibile, usa una stringa vuota o array vuoto.
+
+${prompt}`
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 1000,
+            }
           }),
         });
 
         if (!response.ok) {
           const error = await response.text();
-          console.error('OpenAI API error:', error);
-          console.log('Falling back to manual parsing due to OpenAI API error');
+          console.error('Google AI API error:', error);
+          console.log('Falling back to manual parsing due to Google AI API error');
           parsedData = await fallbackParsing(textContent, file.name);
         } else {
           const data = await response.json();
-          console.log('OpenAI response received');
+          console.log('Google AI response received');
 
-          const extractedText = data.choices[0].message.content;
-          console.log('Extracted text from OpenAI:', extractedText);
+          const extractedText = data.candidates[0].content.parts[0].text;
+          console.log('Extracted text from Google AI:', extractedText);
 
-          // Parse the JSON response from OpenAI
+          // Parse the JSON response from Google AI
           try {
             // Clean up the response to ensure it's valid JSON
             const cleanedText = extractedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
             parsedData = JSON.parse(cleanedText);
           } catch (parseError) {
-            console.error('Error parsing OpenAI response:', parseError);
+            console.error('Error parsing Google AI response:', parseError);
             console.error('Response text:', extractedText);
             console.log('Falling back to manual parsing due to parsing error');
             parsedData = await fallbackParsing(textContent, file.name);
           }
         }
       } catch (error) {
-        console.error('Error with OpenAI request:', error);
+        console.error('Error with Google AI request:', error);
         console.log('Falling back to manual parsing');
         parsedData = await fallbackParsing(textContent, file.name);
       }
