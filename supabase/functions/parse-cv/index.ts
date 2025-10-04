@@ -40,39 +40,18 @@ serve(async (req) => {
 
     console.log('File converted to base64, length:', base64String.length);
 
-    // Parse PDF content using a simple text extraction approach
-    // Note: For production, you'd use a proper PDF parsing library
-    const textContent = await extractTextFromPDF(arrayBuffer);
-    
-    console.log('Text extracted from PDF:', textContent.substring(0, 500) + '...');
-
-    // Use Google AI (Gemini) to analyze the extracted text
+    // Use Google AI (Gemini) to analyze the PDF directly
     const googleAIApiKey = Deno.env.get('GOOGLE_AI_API_KEY');
     let parsedData;
 
     if (!googleAIApiKey) {
       console.log('Google AI API key not configured, using fallback parsing');
+      // Extract text for fallback
+      const textContent = await extractTextFromPDF(arrayBuffer);
       parsedData = await fallbackParsing(textContent, file.name);
     } else {
       try {
-        const prompt = `
-Analizza questo CV e estrai le seguenti informazioni in formato JSON:
-- firstName (nome)
-- lastName (cognome) 
-- email
-- phone (telefono)
-- position (posizione/ruolo desiderato o attuale)
-- company (azienda attuale o più recente)
-- experience (esperienza in anni come stringa, es. "5+ anni")
-- skills (array di competenze tecniche)
-- notes (breve riassunto professionale)
-
-Testo del CV:
-${textContent}
-
-Rispondi SOLO con un JSON valido, senza altre spiegazioni:`;
-
-        console.log('Sending request to Google AI (Gemini)');
+        console.log('Sending PDF to Google AI (Gemini) for analysis');
 
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${googleAIApiKey}`, {
           method: 'POST',
@@ -81,15 +60,57 @@ Rispondi SOLO con un JSON valido, senza altre spiegazioni:`;
           },
           body: JSON.stringify({
             contents: [{
-              parts: [{
-                text: `Sei un esperto nell'analisi di CV. Estrai sempre le informazioni richieste in formato JSON valido. Se un'informazione non è disponibile, usa una stringa vuota o array vuoto.
+              parts: [
+                {
+                  text: `Sei un esperto nell'analisi di curriculum vitae. Analizza attentamente questo CV e estrai le seguenti informazioni in formato JSON:
 
-${prompt}`
-              }]
+CAMPI RICHIESTI:
+- firstName: il nome della persona (stringa)
+- lastName: il cognome della persona (stringa)
+- email: l'indirizzo email (stringa)
+- phone: il numero di telefono (stringa)
+- position: il profilo/ruolo professionale attuale o desiderato (stringa)
+- company: l'azienda attuale o più recente (stringa)
+- experience: gli anni di esperienza totale come stringa (es. "5+ anni", "2-3 anni")
+- skills: un array di competenze tecniche e professionali chiave (array di stringhe)
+- notes: un riassunto professionale dettagliato che includa:
+  * Profilo professionale
+  * Esperienze lavorative principali con ruoli e responsabilità
+  * Formazione
+  * Eventuali certificazioni o achievement rilevanti
+
+ISTRUZIONI:
+1. Leggi attentamente tutto il contenuto del CV
+2. Estrai le informazioni in modo accurato e completo
+3. Per le competenze (skills), includi sia hard skills che soft skills rilevanti
+4. Per le note, crea un riassunto ben strutturato e informativo
+5. Se un'informazione non è disponibile, usa una stringa vuota "" o array vuoto []
+6. Rispondi SOLO con un oggetto JSON valido, senza altre spiegazioni
+
+Formato JSON di output:
+{
+  "firstName": "...",
+  "lastName": "...",
+  "email": "...",
+  "phone": "...",
+  "position": "...",
+  "company": "...",
+  "experience": "...",
+  "skills": ["...", "..."],
+  "notes": "..."
+}`
+                },
+                {
+                  inlineData: {
+                    mimeType: file.type,
+                    data: base64String
+                  }
+                }
+              ]
             }],
             generationConfig: {
               temperature: 0.1,
-              maxOutputTokens: 1000,
+              maxOutputTokens: 2000,
             }
           }),
         });
@@ -98,6 +119,7 @@ ${prompt}`
           const error = await response.text();
           console.error('Google AI API error:', error);
           console.log('Falling back to manual parsing due to Google AI API error');
+          const textContent = await extractTextFromPDF(arrayBuffer);
           parsedData = await fallbackParsing(textContent, file.name);
         } else {
           const data = await response.json();
@@ -115,12 +137,14 @@ ${prompt}`
             console.error('Error parsing Google AI response:', parseError);
             console.error('Response text:', extractedText);
             console.log('Falling back to manual parsing due to parsing error');
+            const textContent = await extractTextFromPDF(arrayBuffer);
             parsedData = await fallbackParsing(textContent, file.name);
           }
         }
       } catch (error) {
         console.error('Error with Google AI request:', error);
         console.log('Falling back to manual parsing');
+        const textContent = await extractTextFromPDF(arrayBuffer);
         parsedData = await fallbackParsing(textContent, file.name);
       }
     }
