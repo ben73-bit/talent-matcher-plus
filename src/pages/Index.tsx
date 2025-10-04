@@ -5,14 +5,26 @@ import { Sidebar } from "@/components/Sidebar";
 import { Dashboard } from "@/components/Dashboard";
 import { CandidateList } from "@/components/CandidateList";
 import { AddCandidate } from "@/components/AddCandidate";
+import { CandidateDetailsDialog } from "@/components/CandidateDetailsDialog";
 import { useAuth } from "@/hooks/useAuth";
+import { useCandidates } from "@/hooks/useCandidates";
 import { Button } from "@/components/ui/button";
 import { Building2, LogIn } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const { getCandidateById } = useCandidates();
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleViewCandidate = (candidateId: string) => {
+    setSelectedCandidateId(candidateId);
+    setDialogOpen(true);
+  };
+
+  const selectedCandidate = selectedCandidateId ? getCandidateById(selectedCandidateId) : null;
 
   // Redirect to auth if not authenticated
   useEffect(() => {
@@ -72,7 +84,7 @@ const Index = () => {
       case "dashboard":
         return <Dashboard />;
       case "candidates":
-        return <CandidateList onViewCandidate={(id) => console.log("View candidate", id)} />;
+        return <CandidateList onViewCandidate={handleViewCandidate} />;
       case "add-candidate":
         return <AddCandidate onBack={() => setActiveTab("candidates")} />;
       case "positions":
@@ -134,6 +146,11 @@ const Index = () => {
           {renderContent()}
         </main>
       </div>
+      <CandidateDetailsDialog 
+        candidate={selectedCandidate}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 };

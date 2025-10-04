@@ -1,0 +1,181 @@
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Mail, Phone, MapPin, Briefcase, Calendar, User, FileText } from "lucide-react";
+import { Candidate } from "@/hooks/useCandidates";
+
+interface CandidateDetailsDialogProps {
+  candidate: Candidate | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const getStatusBadge = (status: Candidate['status']) => {
+  const statusMap = {
+    new: { label: 'Nuovo', variant: 'secondary' as const },
+    contacted: { label: 'Contattato', variant: 'default' as const },
+    interviewed: { label: 'Colloquio', variant: 'outline' as const },
+    hired: { label: 'Assunto', variant: 'default' as const },
+    rejected: { label: 'Scartato', variant: 'destructive' as const }
+  };
+  
+  const config = statusMap[status];
+  return (
+    <Badge variant={config.variant} className={
+      status === 'hired' ? 'bg-success text-success-foreground' :
+      status === 'contacted' ? 'bg-warning text-warning-foreground' : ''
+    }>
+      {config.label}
+    </Badge>
+  );
+};
+
+export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: CandidateDetailsDialogProps) => {
+  if (!candidate) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="h-16 w-16 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-medium text-2xl">
+                {candidate.first_name[0]}{candidate.last_name[0]}
+              </div>
+              <div>
+                <DialogTitle className="text-2xl">
+                  {candidate.first_name} {candidate.last_name}
+                </DialogTitle>
+                <p className="text-primary font-medium mt-1">{candidate.position || 'Posizione non specificata'}</p>
+              </div>
+            </div>
+            {getStatusBadge(candidate.status)}
+          </div>
+        </DialogHeader>
+
+        <div className="space-y-6 mt-6">
+          {/* Informazioni di Contatto */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-lg flex items-center">
+              <User className="mr-2 h-5 w-5 text-primary" />
+              Informazioni di Contatto
+            </h3>
+            <Separator />
+            <div className="grid gap-3">
+              <div className="flex items-center space-x-3 text-sm">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Email:</span>
+                <a href={`mailto:${candidate.email}`} className="text-primary hover:underline">
+                  {candidate.email}
+                </a>
+              </div>
+              {candidate.phone && (
+                <div className="flex items-center space-x-3 text-sm">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Telefono:</span>
+                  <a href={`tel:${candidate.phone}`} className="text-primary hover:underline">
+                    {candidate.phone}
+                  </a>
+                </div>
+              )}
+              {candidate.company && (
+                <div className="flex items-center space-x-3 text-sm">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Azienda:</span>
+                  <span>{candidate.company}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Esperienza */}
+          {candidate.experience_years !== null && candidate.experience_years !== undefined && (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-lg flex items-center">
+                <Briefcase className="mr-2 h-5 w-5 text-primary" />
+                Esperienza Professionale
+              </h3>
+              <Separator />
+              <div className="text-sm">
+                <span className="text-muted-foreground">Anni di esperienza:</span>
+                <span className="ml-2 font-medium">{candidate.experience_years} {candidate.experience_years === 1 ? 'anno' : 'anni'}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Competenze */}
+          {candidate.skills && candidate.skills.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-lg flex items-center">
+                <FileText className="mr-2 h-5 w-5 text-primary" />
+                Competenze Chiave
+              </h3>
+              <Separator />
+              <div className="flex flex-wrap gap-2">
+                {candidate.skills.map((skill, index) => (
+                  <Badge key={index} variant="secondary" className="text-sm">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Note */}
+          {candidate.notes && (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-lg flex items-center">
+                <FileText className="mr-2 h-5 w-5 text-primary" />
+                Note Aggiuntive
+              </h3>
+              <Separator />
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <p className="text-sm whitespace-pre-wrap">{candidate.notes}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Data di Creazione */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-lg flex items-center">
+              <Calendar className="mr-2 h-5 w-5 text-primary" />
+              Informazioni Sistema
+            </h3>
+            <Separator />
+            <div className="text-sm space-y-2">
+              <div>
+                <span className="text-muted-foreground">Candidatura ricevuta:</span>
+                <span className="ml-2 font-medium">
+                  {new Date(candidate.created_at).toLocaleDateString('it-IT', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Ultimo aggiornamento:</span>
+                <span className="ml-2 font-medium">
+                  {new Date(candidate.updated_at).toLocaleDateString('it-IT', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
