@@ -59,6 +59,18 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
         </DialogHeader>
 
         <div className="space-y-6 mt-6">
+          {/* Profilo Professionale */}
+          {candidate.position && (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-lg flex items-center">
+                <Briefcase className="mr-2 h-5 w-5 text-primary" />
+                Profilo Professionale
+              </h3>
+              <Separator />
+              <p className="text-sm">{candidate.position}</p>
+            </div>
+          )}
+
           {/* Informazioni di Contatto */}
           <div className="space-y-3">
             <h3 className="font-semibold text-lg flex items-center">
@@ -69,7 +81,7 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
             <div className="grid gap-3">
               <div className="flex items-center space-x-3 text-sm">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Email:</span>
+                <span className="text-muted-foreground min-w-[80px]">Email:</span>
                 <a href={`mailto:${candidate.email}`} className="text-primary hover:underline">
                   {candidate.email}
                 </a>
@@ -77,7 +89,7 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
               {candidate.phone && (
                 <div className="flex items-center space-x-3 text-sm">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Telefono:</span>
+                  <span className="text-muted-foreground min-w-[80px]">Telefono:</span>
                   <a href={`tel:${candidate.phone}`} className="text-primary hover:underline">
                     {candidate.phone}
                   </a>
@@ -86,29 +98,31 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
               {candidate.company && (
                 <div className="flex items-center space-x-3 text-sm">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Azienda:</span>
+                  <span className="text-muted-foreground min-w-[80px]">Azienda:</span>
                   <span>{candidate.company}</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Esperienza */}
+          {/* Esperienza Professionale */}
           {candidate.experience_years !== null && candidate.experience_years !== undefined && (
             <div className="space-y-3">
               <h3 className="font-semibold text-lg flex items-center">
-                <Briefcase className="mr-2 h-5 w-5 text-primary" />
-                Esperienza Professionale
+                <Calendar className="mr-2 h-5 w-5 text-primary" />
+                Esperienze Principali
               </h3>
               <Separator />
-              <div className="text-sm">
-                <span className="text-muted-foreground">Anni di esperienza:</span>
-                <span className="ml-2 font-medium">{candidate.experience_years} {candidate.experience_years === 1 ? 'anno' : 'anni'}</span>
+              <div className="bg-muted/30 p-3 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium">{candidate.experience_years} {candidate.experience_years === 1 ? 'anno' : 'anni'}</span>
+                  <span className="text-sm text-muted-foreground">di esperienza professionale</span>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Competenze */}
+          {/* Competenze Chiave */}
           {candidate.skills && candidate.skills.length > 0 && (
             <div className="space-y-3">
               <h3 className="font-semibold text-lg flex items-center">
@@ -118,7 +132,7 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
               <Separator />
               <div className="flex flex-wrap gap-2">
                 {candidate.skills.map((skill, index) => (
-                  <Badge key={index} variant="secondary" className="text-sm">
+                  <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
                     {skill}
                   </Badge>
                 ))}
@@ -126,7 +140,7 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
             </div>
           )}
 
-          {/* Note */}
+          {/* Note Aggiuntive */}
           {candidate.notes && (
             <div className="space-y-3">
               <h3 className="font-semibold text-lg flex items-center">
@@ -135,7 +149,7 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
               </h3>
               <Separator />
               <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-sm whitespace-pre-wrap">{candidate.notes}</p>
+                <p className="text-sm whitespace-pre-wrap leading-relaxed">{candidate.notes}</p>
               </div>
             </div>
           )}
