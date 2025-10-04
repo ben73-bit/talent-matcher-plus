@@ -74,7 +74,7 @@ Rispondi SOLO con un JSON valido, senza altre spiegazioni:`;
 
         console.log('Sending request to Google AI (Gemini)');
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${googleAIApiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${googleAIApiKey}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
