@@ -256,7 +256,9 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
                       <DropdownMenuItem 
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.location.href = `mailto:${candidate.email}`;
+                          const mailtoLink = document.createElement('a');
+                          mailtoLink.href = `mailto:${candidate.email}`;
+                          mailtoLink.click();
                         }}
                       >
                         <Mail className="mr-2 h-4 w-4" />
