@@ -14,7 +14,7 @@ import { Building2, LogIn } from "lucide-react";
 const Index = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const { getCandidateById } = useCandidates();
+  const { getCandidateById, candidates } = useCandidates();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -141,7 +141,11 @@ const Index = () => {
     <div className="h-screen flex flex-col bg-background">
       <Navigation />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <Sidebar 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab}
+          candidatesCount={candidates.length}
+        />
         <main className="flex-1 overflow-auto p-6">
           {renderContent()}
         </main>

@@ -14,18 +14,18 @@ import { Badge } from "@/components/ui/badge";
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  candidatesCount?: number;
 }
 
-const navigation = [
-  { id: 'dashboard', icon: Home, label: 'Dashboard', badge: null },
-  { id: 'candidates', icon: Users, label: 'Candidati', badge: '247' },
-  { id: 'positions', icon: Briefcase, label: 'Posizioni', badge: '12' },
-  { id: 'interviews', icon: Calendar, label: 'Colloqui', badge: '8' },
-  { id: 'reports', icon: BarChart3, label: 'Report', badge: null },
-  { id: 'templates', icon: FileText, label: 'Template', badge: null },
-];
-
-export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
+export const Sidebar = ({ activeTab, onTabChange, candidatesCount = 0 }: SidebarProps) => {
+  const navigation = [
+    { id: 'dashboard', icon: Home, label: 'Dashboard', badge: null },
+    { id: 'candidates', icon: Users, label: 'Candidati', badge: candidatesCount > 0 ? candidatesCount.toString() : null },
+    { id: 'positions', icon: Briefcase, label: 'Posizioni', badge: '12' },
+    { id: 'interviews', icon: Calendar, label: 'Colloqui', badge: '8' },
+    { id: 'reports', icon: BarChart3, label: 'Report', badge: null },
+    { id: 'templates', icon: FileText, label: 'Template', badge: null },
+  ];
   return (
     <div className="w-64 bg-card border-r border-border h-full flex flex-col">
       <div className="p-6">

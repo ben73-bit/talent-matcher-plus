@@ -162,7 +162,11 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
       {/* Candidates Grid */}
       <div className="grid gap-4">
         {filteredCandidates.map((candidate) => (
-          <Card key={candidate.id} className="bg-gradient-card border-0 shadow-soft hover:shadow-medium transition-smooth cursor-pointer group">
+          <Card 
+            key={candidate.id} 
+            className="bg-gradient-card border-0 shadow-soft hover:shadow-medium transition-smooth cursor-pointer group"
+            onClick={() => onViewCandidate?.(candidate.id)}
+          >
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-4">
@@ -231,16 +235,30 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
                   
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onViewCandidate?.(candidate.id)}>
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onViewCandidate?.(candidate.id);
+                        }}
+                      >
                         <Eye className="mr-2 h-4 w-4" />
                         Visualizza
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.href = `mailto:${candidate.email}`;
+                        }}
+                      >
                         <Mail className="mr-2 h-4 w-4" />
                         Invia Email
                       </DropdownMenuItem>
