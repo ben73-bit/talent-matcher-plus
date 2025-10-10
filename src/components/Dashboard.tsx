@@ -15,7 +15,11 @@ import { Progress } from "@/components/ui/progress";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useAuth } from "@/hooks/useAuth";
 
-export const Dashboard = () => {
+interface DashboardProps {
+  onNavigate: (tab: string) => void;
+}
+
+export const Dashboard = ({ onNavigate }: DashboardProps) => {
   const { user } = useAuth();
   const { candidates, loading, getStats } = useCandidates();
   
@@ -148,7 +152,11 @@ export const Dashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Candidati Recenti</span>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => onNavigate('candidates')}
+              >
                 Visualizza tutti
               </Button>
             </CardTitle>
@@ -193,19 +201,34 @@ export const Dashboard = () => {
             <CardTitle>Azioni Rapide</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button className="w-full justify-start bg-gradient-primary hover:opacity-90">
+            <Button 
+              className="w-full justify-start bg-gradient-primary hover:opacity-90"
+              onClick={() => onNavigate('add-candidate')}
+            >
               <Users className="mr-2 h-4 w-4" />
               Aggiungi Candidato
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => onNavigate('positions')}
+            >
               <Briefcase className="mr-2 h-4 w-4" />
               Nuova Posizione
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => onNavigate('interviews')}
+            >
               <Calendar className="mr-2 h-4 w-4" />
               Programma Colloquio
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => onNavigate('reports')}
+            >
               <TrendingUp className="mr-2 h-4 w-4" />
               Report Mensile
             </Button>

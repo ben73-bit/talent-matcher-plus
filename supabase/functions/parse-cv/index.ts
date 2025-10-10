@@ -26,17 +26,11 @@ serve(async (req) => {
 
     // Convert file to base64 for document parsing
     const arrayBuffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
+    const bytes = new Uint8Array(arrayBuffer);
     
-    // Convert to base64 in chunks to prevent memory issues
-    let base64String = '';
-    const chunkSize = 32768;
-    
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.slice(i, i + chunkSize);
-      const binaryString = String.fromCharCode.apply(null, Array.from(chunk));
-      base64String += btoa(binaryString);
-    }
+    // Convert to base64 using a more reliable method
+    const binString = Array.from(bytes, (byte) => String.fromCodePoint(byte)).join("");
+    const base64String = btoa(binString);
 
     console.log('File converted to base64, length:', base64String.length);
 

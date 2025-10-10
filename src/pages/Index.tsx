@@ -82,7 +82,7 @@ const Index = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <Dashboard />;
+        return <Dashboard onNavigate={setActiveTab} />;
       case "candidates":
         return <CandidateList onViewCandidate={handleViewCandidate} />;
       case "add-candidate":
@@ -133,7 +133,7 @@ const Index = () => {
           </div>
         );
       default:
-        return <Dashboard />;
+        return <Dashboard onNavigate={setActiveTab} />;
     }
   };
 
