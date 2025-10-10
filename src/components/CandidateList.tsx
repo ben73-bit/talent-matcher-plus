@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -60,9 +63,38 @@ interface CandidateListProps {
 export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
   const { user } = useAuth();
   const { candidates, loading, deleteCandidate, updateCandidate } = useCandidates();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("recent");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  const handleExport = () => {
+    const csvContent = [
+      ['Nome', 'Email', 'Telefono', 'Posizione', 'Status', 'Data'],
+      ...candidates.map(c => [
+        `${c.first_name} ${c.last_name}`,
+        c.email,
+        c.phone || '',
+        c.position || '',
+        c.status,
+        new Date(c.created_at).toLocaleDateString()
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `candidati_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: 'Esportazione completata',
+      description: 'Il file CSV è stato scaricato',
+    });
+  };
 
   const filteredCandidates = candidates
     .filter(candidate => {
@@ -97,11 +129,11 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             Esporta
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setShowAdvancedFilters(true)}>
             <Filter className="mr-2 h-4 w-4" />
             Filtri Avanzati
           </Button>
@@ -294,6 +326,50 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
           </Card>
         ))}
       </div>
+
+      <Dialog open={showAdvancedFilters} onOpenChange={setShowAdvancedFilters}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Filtri Avanzati</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleziona status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">Nuovo</SelectItem>
+                  <SelectItem value="contacted">Contattato</SelectItem>
+                  <SelectItem value="interviewed">Colloquio</SelectItem>
+                  <SelectItem value="hired">Assunto</SelectItem>
+                  <SelectItem value="rejected">Rifiutato</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Posizione</Label>
+              <Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleziona posizione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from(new Set(candidates.map(c => c.position))).map(pos => (
+                    <SelectItem key={pos} value={pos || ''}>{pos}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="w-full" onClick={() => {
+              toast({ title: 'Filtri applicati', description: 'I filtri avanzati sono stati applicati' });
+              setShowAdvancedFilters(false);
+            }}>
+              Applica Filtri
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

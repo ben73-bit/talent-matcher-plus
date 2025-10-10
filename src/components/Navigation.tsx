@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Bell, Settings, User, Search, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 export const Navigation = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -59,7 +62,12 @@ export const Navigation = () => {
 
         {/* Actions */}
         <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm" className="relative">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="relative"
+            onClick={() => setShowNotifications(true)}
+          >
             <Bell className="h-4 w-4" />
             <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs">
               3
@@ -81,11 +89,17 @@ export const Navigation = () => {
                 {user?.email || 'Il mio account'}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
+              <DropdownMenuItem 
+                className="cursor-pointer"
+                onClick={() => toast({ title: 'Profilo', description: 'Funzionalità in arrivo' })}
+              >
                 <User className="mr-2 h-4 w-4" />
                 Profilo
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
+              <DropdownMenuItem 
+                className="cursor-pointer"
+                onClick={() => toast({ title: 'Impostazioni', description: 'Funzionalità in arrivo' })}
+              >
                 <Settings className="mr-2 h-4 w-4" />
                 Impostazioni
               </DropdownMenuItem>
@@ -101,6 +115,40 @@ export const Navigation = () => {
           </DropdownMenu>
         </div>
       </div>
+
+      <Dialog open={showNotifications} onOpenChange={setShowNotifications}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Notifiche</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-start space-x-3 p-3 bg-secondary/50 rounded-lg">
+              <Bell className="h-5 w-5 text-primary mt-0.5" />
+              <div className="flex-1">
+                <p className="font-medium">Nuovo candidato aggiunto</p>
+                <p className="text-sm text-muted-foreground">Un nuovo candidato è stato inserito nel sistema</p>
+                <p className="text-xs text-muted-foreground mt-1">2 ore fa</p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3 p-3 bg-secondary/50 rounded-lg">
+              <Bell className="h-5 w-5 text-primary mt-0.5" />
+              <div className="flex-1">
+                <p className="font-medium">Colloquio programmato</p>
+                <p className="text-sm text-muted-foreground">Colloquio fissato per domani alle 10:00</p>
+                <p className="text-xs text-muted-foreground mt-1">5 ore fa</p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3 p-3 bg-secondary/50 rounded-lg">
+              <Bell className="h-5 w-5 text-primary mt-0.5" />
+              <div className="flex-1">
+                <p className="font-medium">Aggiornamento sistema</p>
+                <p className="text-sm text-muted-foreground">Nuove funzionalità disponibili</p>
+                <p className="text-xs text-muted-foreground mt-1">1 giorno fa</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 };
