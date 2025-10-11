@@ -11,6 +11,7 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +44,8 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
   const [uploadedPhoto, setUploadedPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>("");
   const [uploadedCV, setUploadedCV] = useState<File | null>(null);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [tempPhotoSrc, setTempPhotoSrc] = useState<string>("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -68,17 +71,29 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
       return;
     }
 
-    setUploadedPhoto(file);
+    // Create preview for cropping
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setTempPhotoSrc(reader.result as string);
+      setCropDialogOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    // Create a File from the Blob
+    const croppedFile = new File([croppedBlob], "photo.jpg", { type: "image/jpeg" });
+    setUploadedPhoto(croppedFile);
     
     // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setPhotoPreview(reader.result as string);
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(croppedFile);
 
     toast({
-      title: "Foto caricata",
+      title: "Foto ritagliata",
       description: "La foto verrà salvata quando aggiungi il candidato",
     });
   };
@@ -535,6 +550,14 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Image Crop Dialog */}
+      <ImageCropDialog
+        open={cropDialogOpen}
+        onOpenChange={setCropDialogOpen}
+        imageSrc={tempPhotoSrc}
+        onCropComplete={handleCropComplete}
+      />
 
       {/* Features Info */}
       <Card className="bg-primary-light border-primary/20 shadow-soft">

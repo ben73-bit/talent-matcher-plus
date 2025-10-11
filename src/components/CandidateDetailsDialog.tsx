@@ -86,20 +86,23 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
             </div>
             <div className="flex flex-col items-end gap-2">
               {getStatusBadge(candidate.status)}
-              {candidate.cv_url && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleDownloadCV}
-                  className="gap-1"
-                >
-                  <Download className="h-4 w-4" />
-                  Scarica CV
-                </Button>
-              )}
             </div>
           </div>
         </DialogHeader>
+
+        {candidate.cv_url && (
+          <div className="px-6 pb-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleDownloadCV}
+              className="gap-1 w-full"
+            >
+              <Download className="h-4 w-4" />
+              Scarica CV
+            </Button>
+          </div>
+        )}
 
         <div className="space-y-6 mt-6">
           {/* Profilo Professionale */}
