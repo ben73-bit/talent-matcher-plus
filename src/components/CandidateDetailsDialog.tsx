@@ -91,9 +91,9 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
                   variant="outline" 
                   size="sm"
                   onClick={handleDownloadCV}
-                  className="text-xs"
+                  className="gap-1"
                 >
-                  <Download className="h-3 w-3 mr-1" />
+                  <Download className="h-4 w-4" />
                   Scarica CV
                 </Button>
               )}
