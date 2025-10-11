@@ -6,8 +6,10 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, MapPin, Briefcase, Calendar, User, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Mail, Phone, MapPin, Briefcase, Calendar, User, FileText, Download } from "lucide-react";
 import { Candidate } from "@/hooks/useCandidates";
+import { useToast } from "@/hooks/use-toast";
 
 interface CandidateDetailsDialogProps {
   candidate: Candidate | null;
@@ -36,7 +38,27 @@ const getStatusBadge = (status: Candidate['status']) => {
 };
 
 export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: CandidateDetailsDialogProps) => {
+  const { toast } = useToast();
+
   if (!candidate) return null;
+
+  const handleDownloadCV = () => {
+    if (!candidate.cv_url) {
+      toast({
+        title: "CV non disponibile",
+        description: "Nessun CV caricato per questo candidato",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Open the CV URL in a new tab for download
+    window.open(candidate.cv_url, '_blank');
+    toast({
+      title: "Download avviato",
+      description: "Il CV è stato aperto in una nuova scheda",
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -44,9 +66,17 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
         <DialogHeader>
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-4">
-              <div className="h-16 w-16 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-medium text-2xl">
-                {candidate.first_name[0]}{candidate.last_name[0]}
-              </div>
+              {candidate.photo_url ? (
+                <img 
+                  src={candidate.photo_url} 
+                  alt={`${candidate.first_name} ${candidate.last_name}`}
+                  className="h-16 w-16 rounded-full object-cover border-2 border-primary/20"
+                />
+              ) : (
+                <div className="h-16 w-16 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-medium text-2xl">
+                  {candidate.first_name[0]}{candidate.last_name[0]}
+                </div>
+              )}
               <div>
                 <DialogTitle className="text-2xl">
                   {candidate.first_name} {candidate.last_name}
@@ -54,7 +84,20 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
                 <p className="text-primary font-medium mt-1">{candidate.position || 'Posizione non specificata'}</p>
               </div>
             </div>
-            {getStatusBadge(candidate.status)}
+            <div className="flex flex-col items-end gap-2">
+              {getStatusBadge(candidate.status)}
+              {candidate.cv_url && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleDownloadCV}
+                  className="text-xs"
+                >
+                  <Download className="h-3 w-3 mr-1" />
+                  Scarica CV
+                </Button>
+              )}
+            </div>
           </div>
         </DialogHeader>
 

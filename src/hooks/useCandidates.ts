@@ -16,6 +16,8 @@ export interface Candidate {
   skills?: string[];
   notes?: string;
   status: 'new' | 'contacted' | 'interviewed' | 'hired' | 'rejected';
+  photo_url?: string;
+  cv_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +33,8 @@ export interface CreateCandidateData {
   skills?: string[];
   notes?: string;
   status?: 'new' | 'contacted' | 'interviewed' | 'hired' | 'rejected';
+  photo_url?: string;
+  cv_url?: string;
 }
 
 export interface UpdateCandidateData {
@@ -44,6 +48,8 @@ export interface UpdateCandidateData {
   skills?: string[];
   notes?: string;
   status?: 'new' | 'contacted' | 'interviewed' | 'hired' | 'rejected';
+  photo_url?: string;
+  cv_url?: string;
 }
 
 export function useCandidates() {

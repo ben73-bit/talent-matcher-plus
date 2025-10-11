@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Settings, User, Search, LogOut } from "lucide-react";
+import { Bell, Settings, User, Search, LogOut, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,10 +16,45 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
+interface Notification {
+  id: number;
+  title: string;
+  description: string;
+  time: string;
+}
+
 export const Navigation = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([
+    {
+      id: 1,
+      title: "Nuovo candidato aggiunto",
+      description: "Un nuovo candidato è stato inserito nel sistema",
+      time: "2 ore fa"
+    },
+    {
+      id: 2,
+      title: "Colloquio programmato",
+      description: "Colloquio fissato per domani alle 10:00",
+      time: "5 ore fa"
+    },
+    {
+      id: 3,
+      title: "Aggiornamento sistema",
+      description: "Nuove funzionalità disponibili",
+      time: "1 giorno fa"
+    }
+  ]);
+
+  const deleteNotification = (id: number) => {
+    setNotifications(prev => prev.filter(notif => notif.id !== id));
+    toast({
+      title: "Notifica eliminata",
+      description: "La notifica è stata rimossa",
+    });
+  };
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -69,9 +104,11 @@ export const Navigation = () => {
             onClick={() => setShowNotifications(true)}
           >
             <Bell className="h-4 w-4" />
-            <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs">
-              3
-            </Badge>
+            {notifications.length > 0 && (
+              <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs">
+                {notifications.length}
+              </Badge>
+            )}
           </Button>
 
           <DropdownMenu>
@@ -119,33 +156,34 @@ export const Navigation = () => {
       <Dialog open={showNotifications} onOpenChange={setShowNotifications}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Notifiche</DialogTitle>
+            <DialogTitle>Notifiche ({notifications.length})</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="flex items-start space-x-3 p-3 bg-secondary/50 rounded-lg">
-              <Bell className="h-5 w-5 text-primary mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium">Nuovo candidato aggiunto</p>
-                <p className="text-sm text-muted-foreground">Un nuovo candidato è stato inserito nel sistema</p>
-                <p className="text-xs text-muted-foreground mt-1">2 ore fa</p>
+            {notifications.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Bell className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p>Nessuna notifica</p>
               </div>
-            </div>
-            <div className="flex items-start space-x-3 p-3 bg-secondary/50 rounded-lg">
-              <Bell className="h-5 w-5 text-primary mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium">Colloquio programmato</p>
-                <p className="text-sm text-muted-foreground">Colloquio fissato per domani alle 10:00</p>
-                <p className="text-xs text-muted-foreground mt-1">5 ore fa</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3 p-3 bg-secondary/50 rounded-lg">
-              <Bell className="h-5 w-5 text-primary mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium">Aggiornamento sistema</p>
-                <p className="text-sm text-muted-foreground">Nuove funzionalità disponibili</p>
-                <p className="text-xs text-muted-foreground mt-1">1 giorno fa</p>
-              </div>
-            </div>
+            ) : (
+              notifications.map((notification) => (
+                <div key={notification.id} className="flex items-start space-x-3 p-3 bg-secondary/50 rounded-lg group relative">
+                  <Bell className="h-5 w-5 text-primary mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium">{notification.title}</p>
+                    <p className="text-sm text-muted-foreground">{notification.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => deleteNotification(notification.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))
+            )}
           </div>
         </DialogContent>
       </Dialog>

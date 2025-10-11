@@ -10,6 +10,7 @@ import {
   Sparkles,
   ArrowLeft
 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,9 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
+  const [uploadedPhoto, setUploadedPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>("");
+  const [uploadedCV, setUploadedCV] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -50,6 +54,34 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
     skills: [] as string[],
     notes: ""
   });
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Errore",
+        description: "Per favore carica solo file immagine (JPG, PNG, WEBP)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadedPhoto(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    toast({
+      title: "Foto caricata",
+      description: "La foto verrà salvata quando aggiungi il candidato",
+    });
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -64,6 +96,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
       return;
     }
 
+    setUploadedCV(file);
     setIsProcessing(true);
     
     try {
@@ -125,6 +158,41 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
     setIsSubmitting(true);
     
     try {
+      let photoUrl = "";
+      let cvUrl = "";
+
+      // Upload photo if present
+      if (uploadedPhoto) {
+        const photoFileName = `${user.id}/${Date.now()}_${uploadedPhoto.name}`;
+        const { data: photoData, error: photoError } = await supabase.storage
+          .from('candidate-photos')
+          .upload(photoFileName, uploadedPhoto);
+
+        if (photoError) throw photoError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('candidate-photos')
+          .getPublicUrl(photoFileName);
+        
+        photoUrl = publicUrl;
+      }
+
+      // Upload CV if present
+      if (uploadedCV) {
+        const cvFileName = `${user.id}/${Date.now()}_${uploadedCV.name}`;
+        const { data: cvData, error: cvError } = await supabase.storage
+          .from('candidate-cvs')
+          .upload(cvFileName, uploadedCV);
+
+        if (cvError) throw cvError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('candidate-cvs')
+          .getPublicUrl(cvFileName);
+        
+        cvUrl = publicUrl;
+      }
+
       // Convert experience to years number
       const experienceYears = formData.experience ? 
         parseInt(formData.experience.split(' ')[0]) || 0 : 0;
@@ -139,7 +207,9 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
         experience_years: experienceYears,
         skills: formData.skills,
         notes: formData.notes,
-        status: 'new'
+        status: 'new',
+        photo_url: photoUrl || undefined,
+        cv_url: cvUrl || undefined,
       });
       
       if (candidate) {
@@ -156,12 +226,20 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
           notes: ""
         });
         setExtractedData(null);
+        setUploadedPhoto(null);
+        setPhotoPreview("");
+        setUploadedCV(null);
         
         // Go back to candidate list
         onBack();
       }
     } catch (error) {
       console.error('Error adding candidate:', error);
+      toast({
+        title: "Errore",
+        description: error instanceof Error ? error.message : "Errore nell'aggiunta del candidato",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -271,6 +349,47 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Photo Upload */}
+              <div className="space-y-2">
+                <Label>Foto Candidato</Label>
+                <div className="flex items-center space-x-4">
+                  {photoPreview ? (
+                    <img 
+                      src={photoPreview} 
+                      alt="Anteprima foto"
+                      className="h-20 w-20 rounded-full object-cover border-2 border-primary/20"
+                    />
+                  ) : (
+                    <div className="h-20 w-20 rounded-full bg-secondary flex items-center justify-center">
+                      <User className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                      id="photo-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      asChild
+                    >
+                      <label htmlFor="photo-upload" className="cursor-pointer">
+                        Carica Foto
+                      </label>
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      JPG, PNG o WEBP (max 5MB)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">Nome</Label>

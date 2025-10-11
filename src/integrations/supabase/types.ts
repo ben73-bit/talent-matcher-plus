@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           company: string | null
           created_at: string
+          cv_url: string | null
           email: string
           experience_years: number | null
           first_name: string
@@ -25,6 +26,7 @@ export type Database = {
           last_name: string
           notes: string | null
           phone: string | null
+          photo_url: string | null
           position: string | null
           skills: string[] | null
           status: string | null
@@ -34,6 +36,7 @@ export type Database = {
         Insert: {
           company?: string | null
           created_at?: string
+          cv_url?: string | null
           email: string
           experience_years?: number | null
           first_name: string
@@ -41,6 +44,7 @@ export type Database = {
           last_name: string
           notes?: string | null
           phone?: string | null
+          photo_url?: string | null
           position?: string | null
           skills?: string[] | null
           status?: string | null
@@ -50,6 +54,7 @@ export type Database = {
         Update: {
           company?: string | null
           created_at?: string
+          cv_url?: string | null
           email?: string
           experience_years?: number | null
           first_name?: string
@@ -57,6 +62,7 @@ export type Database = {
           last_name?: string
           notes?: string | null
           phone?: string | null
+          photo_url?: string | null
           position?: string | null
           skills?: string[] | null
           status?: string | null
