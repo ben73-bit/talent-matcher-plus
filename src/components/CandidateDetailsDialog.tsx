@@ -61,18 +61,27 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
       }
       const filePath = urlParts[1];
 
-      // Generate a signed URL for download (valid for 60 seconds)
+      // Download the file from storage
       const { data, error } = await supabase.storage
         .from('candidate-cvs')
-        .createSignedUrl(filePath, 60);
+        .download(filePath);
 
       if (error) throw error;
 
-      if (data?.signedUrl) {
-        window.open(data.signedUrl, '_blank');
+      if (data) {
+        // Create a blob URL and trigger download
+        const url = URL.createObjectURL(data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `CV_${candidate.first_name}_${candidate.last_name}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
         toast({
-          title: "Download avviato",
-          description: "Il CV è stato aperto in una nuova scheda",
+          title: "Download completato",
+          description: "Il CV è stato scaricato con successo",
         });
       }
     } catch (error) {
