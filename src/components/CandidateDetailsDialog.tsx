@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Mail, Phone, MapPin, Briefcase, Calendar, User, FileText, Download } from "lucide-react";
 import { Candidate } from "@/hooks/useCandidates";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CandidateDetailsDialogProps {
   candidate: Candidate | null;
@@ -42,7 +43,7 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
 
   if (!candidate) return null;
 
-  const handleDownloadCV = () => {
+  const handleDownloadCV = async () => {
     if (!candidate.cv_url) {
       toast({
         title: "CV non disponibile",
@@ -52,12 +53,36 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
       return;
     }
 
-    // Open the CV URL in a new tab for download
-    window.open(candidate.cv_url, '_blank');
-    toast({
-      title: "Download avviato",
-      description: "Il CV è stato aperto in una nuova scheda",
-    });
+    try {
+      // Extract the file path from the full URL
+      const urlParts = candidate.cv_url.split('/candidate-cvs/');
+      if (urlParts.length < 2) {
+        throw new Error('URL del CV non valido');
+      }
+      const filePath = urlParts[1];
+
+      // Generate a signed URL for download (valid for 60 seconds)
+      const { data, error } = await supabase.storage
+        .from('candidate-cvs')
+        .createSignedUrl(filePath, 60);
+
+      if (error) throw error;
+
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+        toast({
+          title: "Download avviato",
+          description: "Il CV è stato aperto in una nuova scheda",
+        });
+      }
+    } catch (error) {
+      console.error('Error downloading CV:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile scaricare il CV",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
