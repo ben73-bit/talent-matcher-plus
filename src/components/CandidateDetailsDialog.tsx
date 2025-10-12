@@ -90,21 +90,21 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
           </div>
         </DialogHeader>
 
-        {candidate.cv_url && (
-          <div className="px-6 pb-4">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleDownloadCV}
-              className="gap-1 w-full"
-            >
-              <Download className="h-4 w-4" />
-              Scarica CV
-            </Button>
-          </div>
-        )}
-
         <div className="space-y-6 mt-6">
+          {candidate.cv_url && (
+            <div className="space-y-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleDownloadCV}
+                className="gap-2 w-full"
+              >
+                <Download className="h-4 w-4" />
+                Scarica CV
+              </Button>
+              <Separator />
+            </div>
+          )}
           {/* Profilo Professionale */}
           {candidate.position && (
             <div className="space-y-3">
