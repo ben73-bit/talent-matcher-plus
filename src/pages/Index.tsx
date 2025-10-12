@@ -20,11 +20,16 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleViewCandidate = (candidateId: string) => {
+    console.log('Viewing candidate:', candidateId);
+    console.log('Available candidates:', candidates.map(c => c.id));
     setSelectedCandidateId(candidateId);
     setDialogOpen(true);
   };
 
   const selectedCandidate = selectedCandidateId ? getCandidateById(selectedCandidateId) : null;
+  
+  console.log('Selected candidate ID:', selectedCandidateId);
+  console.log('Selected candidate:', selectedCandidate);
 
   // Redirect to auth if not authenticated
   useEffect(() => {
