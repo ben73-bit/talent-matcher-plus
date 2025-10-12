@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { Dashboard } from "@/components/Dashboard";
 import { CandidateList } from "@/components/CandidateList";
 import { AddCandidate } from "@/components/AddCandidate";
+import { EditCandidate } from "@/components/EditCandidate";
 import { CandidateDetailsDialog } from "@/components/CandidateDetailsDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useCandidates } from "@/hooks/useCandidates";
@@ -18,6 +19,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingCandidateId, setEditingCandidateId] = useState<string | null>(null);
 
   const handleViewCandidate = (candidateId: string) => {
     console.log('Viewing candidate:', candidateId);
@@ -26,7 +28,19 @@ const Index = () => {
     setDialogOpen(true);
   };
 
+  const handleEditCandidate = (candidateId: string) => {
+    setEditingCandidateId(candidateId);
+    setActiveTab("edit-candidate");
+    setDialogOpen(false);
+  };
+
+  const handleSaveEdit = () => {
+    setEditingCandidateId(null);
+    setActiveTab("candidates");
+  };
+
   const selectedCandidate = selectedCandidateId ? getCandidateById(selectedCandidateId) : null;
+  const editingCandidate = editingCandidateId ? getCandidateById(editingCandidateId) : null;
   
   console.log('Selected candidate ID:', selectedCandidateId);
   console.log('Selected candidate:', selectedCandidate);
@@ -92,6 +106,14 @@ const Index = () => {
         return <CandidateList onViewCandidate={handleViewCandidate} />;
       case "add-candidate":
         return <AddCandidate onBack={() => setActiveTab("candidates")} />;
+      case "edit-candidate":
+        return editingCandidate ? (
+          <EditCandidate 
+            candidate={editingCandidate} 
+            onBack={() => setActiveTab("candidates")} 
+            onSave={handleSaveEdit}
+          />
+        ) : null;
       case "positions":
         return (
           <div className="flex items-center justify-center h-96">
@@ -159,6 +181,7 @@ const Index = () => {
         candidate={selectedCandidate}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        onEdit={handleEditCandidate}
       />
     </div>
   );

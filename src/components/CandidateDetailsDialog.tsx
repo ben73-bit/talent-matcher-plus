@@ -7,7 +7,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Mail, Phone, MapPin, Briefcase, Calendar, User, FileText, Download } from "lucide-react";
+import { Mail, Phone, MapPin, Briefcase, Calendar, User, FileText, Download, Pencil } from "lucide-react";
 import { Candidate } from "@/hooks/useCandidates";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,7 @@ interface CandidateDetailsDialogProps {
   candidate: Candidate | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit?: (candidateId: string) => void;
 }
 
 const getStatusBadge = (status: Candidate['status']) => {
@@ -38,7 +39,7 @@ const getStatusBadge = (status: Candidate['status']) => {
   );
 };
 
-export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: CandidateDetailsDialogProps) => {
+export const CandidateDetailsDialog = ({ candidate, open, onOpenChange, onEdit }: CandidateDetailsDialogProps) => {
   const { toast } = useToast();
 
   if (!candidate) return null;
@@ -125,18 +126,31 @@ export const CandidateDetailsDialog = ({ candidate, open, onOpenChange }: Candid
         </DialogHeader>
 
         <div className="space-y-6 mt-6">
-          {/* Pulsante Download CV */}
+          {/* Pulsanti Azioni */}
           <div className="space-y-3">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleDownloadCV}
-              className="gap-2 w-full"
-              disabled={!candidate.cv_url}
-            >
-              <Download className="h-4 w-4" />
-              {candidate.cv_url ? 'Scarica CV' : 'Nessun CV disponibile'}
-            </Button>
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleDownloadCV}
+                className="gap-2"
+                disabled={!candidate.cv_url}
+              >
+                <Download className="h-4 w-4" />
+                {candidate.cv_url ? 'Scarica CV' : 'Nessun CV'}
+              </Button>
+              {onEdit && (
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={() => onEdit(candidate.id)}
+                  className="gap-2"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Modifica
+                </Button>
+              )}
+            </div>
             <Separator />
           </div>
 
