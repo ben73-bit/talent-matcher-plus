@@ -23,7 +23,11 @@ interface Notification {
   time: string;
 }
 
-export const Navigation = () => {
+interface NavigationProps {
+  onProfileClick?: () => void;
+}
+
+export const Navigation = ({ onProfileClick }: NavigationProps) => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -128,7 +132,7 @@ export const Navigation = () => {
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="cursor-pointer"
-                onClick={() => toast({ title: 'Profilo', description: 'Funzionalità in arrivo' })}
+                onClick={onProfileClick}
               >
                 <User className="mr-2 h-4 w-4" />
                 Profilo

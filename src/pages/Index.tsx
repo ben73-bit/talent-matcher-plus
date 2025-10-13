@@ -6,6 +6,7 @@ import { Dashboard } from "@/components/Dashboard";
 import { CandidateList } from "@/components/CandidateList";
 import { AddCandidate } from "@/components/AddCandidate";
 import { EditCandidate } from "@/components/EditCandidate";
+import { ProfilePage } from "@/pages/ProfilePage";
 import { CandidateDetailsDialog } from "@/components/CandidateDetailsDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useCandidates } from "@/hooks/useCandidates";
@@ -114,6 +115,8 @@ const Index = () => {
             onSave={handleSaveEdit}
           />
         ) : null;
+      case "profile":
+        return <ProfilePage onBack={() => setActiveTab("dashboard")} />;
       case "positions":
         return (
           <div className="flex items-center justify-center h-96">
@@ -166,7 +169,7 @@ const Index = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <Navigation />
+      <Navigation onProfileClick={() => setActiveTab('profile')} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar 
           activeTab={activeTab} 
