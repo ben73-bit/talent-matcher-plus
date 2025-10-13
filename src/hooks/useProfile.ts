@@ -14,6 +14,8 @@ interface Profile {
   role: string | null;
   phone: string | null;
   bio: string | null;
+  email_notifications: boolean | null;
+  theme: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -78,11 +78,13 @@ export type Database = {
           company: string | null
           created_at: string
           email: string | null
+          email_notifications: boolean | null
           first_name: string | null
           id: string
           last_name: string | null
           phone: string | null
           role: string | null
+          theme: string | null
           updated_at: string
           user_id: string
         }
@@ -92,11 +94,13 @@ export type Database = {
           company?: string | null
           created_at?: string
           email?: string | null
+          email_notifications?: boolean | null
           first_name?: string | null
           id?: string
           last_name?: string | null
           phone?: string | null
           role?: string | null
+          theme?: string | null
           updated_at?: string
           user_id: string
         }
@@ -106,11 +110,13 @@ export type Database = {
           company?: string | null
           created_at?: string
           email?: string | null
+          email_notifications?: boolean | null
           first_name?: string | null
           id?: string
           last_name?: string | null
           phone?: string | null
           role?: string | null
+          theme?: string | null
           updated_at?: string
           user_id?: string
         }

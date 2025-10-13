@@ -1,14 +1,16 @@
-import { useState } from 'react';
-import { ArrowLeft, Camera, Save, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Camera, Save, Loader2, Sun, Moon, Bell, BellOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
 import { ImageCropDialog } from '@/components/ImageCropDialog';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from 'next-themes';
 
 interface ProfilePageProps {
   onBack: () => void;
@@ -17,10 +19,12 @@ interface ProfilePageProps {
 export const ProfilePage = ({ onBack }: ProfilePageProps) => {
   const { user } = useAuth();
   const { profile, loading, updateProfile, uploadAvatar } = useProfile();
+  const { theme, setTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [emailNotifications, setEmailNotifications] = useState(profile?.email_notifications ?? true);
   
   const [formData, setFormData] = useState({
     first_name: profile?.first_name || '',
@@ -30,6 +34,15 @@ export const ProfilePage = ({ onBack }: ProfilePageProps) => {
     phone: profile?.phone || '',
     bio: profile?.bio || '',
   });
+
+  useEffect(() => {
+    if (profile?.theme && theme !== profile.theme) {
+      setTheme(profile.theme);
+    }
+    if (profile?.email_notifications !== undefined) {
+      setEmailNotifications(profile.email_notifications);
+    }
+  }, [profile, setTheme]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -52,9 +65,24 @@ export const ProfilePage = ({ onBack }: ProfilePageProps) => {
 
   const handleSave = async () => {
     setIsSaving(true);
-    await updateProfile(formData);
+    await updateProfile({
+      ...formData,
+      email_notifications: emailNotifications,
+      theme: theme || 'light',
+    });
     setIsSaving(false);
     setIsEditing(false);
+  };
+
+  const handleThemeToggle = async () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    await updateProfile({ theme: newTheme });
+  };
+
+  const handleNotificationsToggle = async (checked: boolean) => {
+    setEmailNotifications(checked);
+    await updateProfile({ email_notifications: checked });
   };
 
   const handleCancel = () => {
@@ -238,6 +266,58 @@ export const ProfilePage = ({ onBack }: ProfilePageProps) => {
               </Button>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Preferenze */}
+      <Card className="bg-gradient-card border-0 shadow-soft mt-6">
+        <CardHeader>
+          <CardTitle>Preferenze</CardTitle>
+          <CardDescription>Personalizza la tua esperienza</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Theme Toggle */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="text-base">Tema</Label>
+              <p className="text-sm text-muted-foreground">
+                Scegli tra tema chiaro o scuro
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleThemeToggle}
+              className="h-10 w-10"
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
+
+          {/* Email Notifications */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="text-base flex items-center gap-2">
+                {emailNotifications ? (
+                  <Bell className="h-4 w-4" />
+                ) : (
+                  <BellOff className="h-4 w-4" />
+                )}
+                Notifiche Email
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Ricevi notifiche via email per gli aggiornamenti
+              </p>
+            </div>
+            <Switch
+              checked={emailNotifications}
+              onCheckedChange={handleNotificationsToggle}
+            />
+          </div>
         </CardContent>
       </Card>
 
