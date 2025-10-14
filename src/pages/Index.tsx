@@ -6,7 +6,7 @@ import { Dashboard } from "@/components/Dashboard";
 import { CandidateList } from "@/components/CandidateList";
 import { AddCandidate } from "@/components/AddCandidate";
 import { EditCandidate } from "@/components/EditCandidate";
-import { ProfilePage } from "@/pages/ProfilePage";
+
 import { CandidateDetailsDialog } from "@/components/CandidateDetailsDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useCandidates } from "@/hooks/useCandidates";
@@ -99,6 +99,16 @@ const Index = () => {
     );
   }
 
+  const handleTabChange = (tab: string) => {
+    if (tab === 'settings') {
+      navigate('/settings');
+    } else if (tab === 'profile') {
+      navigate('/profile');
+    } else {
+      setActiveTab(tab);
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
@@ -115,8 +125,6 @@ const Index = () => {
             onSave={handleSaveEdit}
           />
         ) : null;
-      case "profile":
-        return <ProfilePage />;
       case "positions":
         return (
           <div className="flex items-center justify-center h-96">
@@ -153,15 +161,6 @@ const Index = () => {
             </div>
           </div>
         );
-      case "settings":
-        return (
-          <div className="flex items-center justify-center h-96">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl font-bold text-foreground">Impostazioni</h2>
-              <p className="text-muted-foreground">Funzionalità in arrivo...</p>
-            </div>
-          </div>
-        );
       default:
         return <Dashboard onNavigate={setActiveTab} />;
     }
@@ -169,11 +168,11 @@ const Index = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <Navigation onProfileClick={() => setActiveTab('profile')} />
+      <Navigation onProfileClick={() => navigate('/profile')} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar 
           activeTab={activeTab} 
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           candidatesCount={candidates.length}
         />
         <main className="flex-1 overflow-auto p-6">
