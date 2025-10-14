@@ -80,8 +80,11 @@ export type Database = {
           email: string | null
           email_notifications: boolean | null
           first_name: string | null
+          google_ai_api_key: string | null
           id: string
+          language: string | null
           last_name: string | null
+          openai_api_key: string | null
           phone: string | null
           role: string | null
           theme: string | null
@@ -96,8 +99,11 @@ export type Database = {
           email?: string | null
           email_notifications?: boolean | null
           first_name?: string | null
+          google_ai_api_key?: string | null
           id?: string
+          language?: string | null
           last_name?: string | null
+          openai_api_key?: string | null
           phone?: string | null
           role?: string | null
           theme?: string | null
@@ -112,8 +118,11 @@ export type Database = {
           email?: string | null
           email_notifications?: boolean | null
           first_name?: string | null
+          google_ai_api_key?: string | null
           id?: string
+          language?: string | null
           last_name?: string | null
+          openai_api_key?: string | null
           phone?: string | null
           role?: string | null
           theme?: string | null

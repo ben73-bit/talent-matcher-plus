@@ -11,12 +11,10 @@ import { ImageCropDialog } from '@/components/ImageCropDialog';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from 'next-themes';
+import { useNavigate } from 'react-router-dom';
 
-interface ProfilePageProps {
-  onBack: () => void;
-}
-
-export const ProfilePage = ({ onBack }: ProfilePageProps) => {
+export const ProfilePage = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { profile, loading, updateProfile, uploadAvatar } = useProfile();
   const { theme, setTheme } = useTheme();
@@ -112,7 +110,7 @@ export const ProfilePage = ({ onBack }: ProfilePageProps) => {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-6">
-        <Button variant="ghost" onClick={onBack} className="mb-4">
+        <Button variant="ghost" onClick={() => navigate('/')} className="mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Torna alla dashboard
         </Button>
@@ -331,4 +329,6 @@ export const ProfilePage = ({ onBack }: ProfilePageProps) => {
       )}
     </div>
   );
-};
+}
+
+export default ProfilePage;

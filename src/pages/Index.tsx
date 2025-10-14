@@ -116,7 +116,7 @@ const Index = () => {
           />
         ) : null;
       case "profile":
-        return <ProfilePage onBack={() => setActiveTab("dashboard")} />;
+        return <ProfilePage />;
       case "positions":
         return (
           <div className="flex items-center justify-center h-96">

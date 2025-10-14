@@ -16,6 +16,9 @@ interface Profile {
   bio: string | null;
   email_notifications: boolean | null;
   theme: string | null;
+  openai_api_key: string | null;
+  google_ai_api_key: string | null;
+  language: string | null;
   created_at: string;
   updated_at: string;
 }
