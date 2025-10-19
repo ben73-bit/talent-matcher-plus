@@ -18,7 +18,6 @@ export interface Candidate {
   status: 'new' | 'contacted' | 'interviewed' | 'hired' | 'rejected';
   photo_url?: string;
   cv_url?: string;
-  order_index?: number;
   created_at: string;
   updated_at: string;
 }
@@ -51,7 +50,6 @@ export interface UpdateCandidateData {
   status?: 'new' | 'contacted' | 'interviewed' | 'hired' | 'rejected';
   photo_url?: string;
   cv_url?: string;
-  order_index?: number;
 }
 
 export function useCandidates() {
@@ -74,7 +72,6 @@ export function useCandidates() {
         .from('candidates')
         .select('*')
         .eq('user_id', user.id)
-        .order('order_index', { ascending: true })
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -235,27 +232,6 @@ export function useCandidates() {
     fetchCandidates();
   }, [user]);
 
-  const updateCandidateOrder = async (candidateId: string, newIndex: number) => {
-    try {
-      const { error } = await supabase
-        .from('candidates')
-        .update({ order_index: newIndex })
-        .eq('id', candidateId)
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
-
-      await fetchCandidates();
-    } catch (error) {
-      console.error('Error updating candidate order:', error);
-      toast({
-        title: "Errore",
-        description: "Impossibile aggiornare l'ordine",
-        variant: "destructive",
-      });
-    }
-  };
-
   return {
     candidates,
     loading,
@@ -266,6 +242,5 @@ export function useCandidates() {
     getCandidatesByStatus,
     getStats,
     refetch: fetchCandidates,
-    updateCandidateOrder,
   };
 }
