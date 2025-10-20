@@ -18,6 +18,7 @@ export interface Candidate {
   status: 'new' | 'contacted' | 'interviewed' | 'hired' | 'rejected';
   photo_url?: string;
   cv_url?: string;
+  order_index?: number;
   created_at: string;
   updated_at: string;
 }
@@ -72,6 +73,7 @@ export function useCandidates() {
         .from('candidates')
         .select('*')
         .eq('user_id', user.id)
+        .order('order_index', { ascending: true })
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -216,7 +218,55 @@ export function useCandidates() {
     return candidates.filter(candidate => candidate.status === status);
   };
 
-  // Get candidates statistics
+  const updateCandidateOrder = async (candidateId: string, newOrderIndex: number) => {
+    try {
+      const { error } = await supabase
+        .from('candidates')
+        .update({ order_index: newOrderIndex })
+        .eq('id', candidateId)
+        .eq('user_id', user?.id);
+
+      if (error) {
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating candidate order:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile aggiornare l'ordine del candidato",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const reorderCandidates = async (reorderedCandidates: Candidate[]) => {
+    try {
+      const updates = reorderedCandidates.map((candidate, index) =>
+        supabase
+          .from('candidates')
+          .update({ order_index: index })
+          .eq('id', candidate.id)
+          .eq('user_id', user?.id)
+      );
+
+      await Promise.all(updates);
+      setCandidates(reorderedCandidates);
+
+      return true;
+    } catch (error) {
+      console.error('Error reordering candidates:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile riordinare i candidati",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const getStats = () => {
     return {
       total: candidates.length,
@@ -241,6 +291,8 @@ export function useCandidates() {
     getCandidateById,
     getCandidatesByStatus,
     getStats,
+    updateCandidateOrder,
+    reorderCandidates,
     refetch: fetchCandidates,
   };
 }
