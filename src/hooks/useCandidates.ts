@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from '@/components/ui/use-toast';
@@ -59,8 +59,8 @@ export function useCandidates() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Fetch candidates
-  const fetchCandidates = async () => {
+  // Fetch candidates - ora con useCallback per stabilizzare la funzione
+  const fetchCandidates = useCallback(async () => {
     if (!user) {
       setCandidates([]);
       setLoading(false);
@@ -91,7 +91,7 @@ export function useCandidates() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toast]); // Dipendenze corrette
 
   // Create candidate
   const createCandidate = async (candidateData: CreateCandidateData) => {
@@ -141,12 +141,21 @@ export function useCandidates() {
 
   // Update candidate
   const updateCandidate = async (id: string, updates: UpdateCandidateData) => {
+    if (!user) {
+      toast({
+        title: "Errore",
+        description: "Devi essere autenticato",
+        variant: "destructive",
+      });
+      return null;
+    }
+
     try {
       const { data, error } = await supabase
         .from('candidates')
         .update(updates)
         .eq('id', id)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -179,12 +188,21 @@ export function useCandidates() {
 
   // Delete candidate
   const deleteCandidate = async (id: string) => {
+    if (!user) {
+      toast({
+        title: "Errore",
+        description: "Devi essere autenticato",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     try {
       const { error } = await supabase
         .from('candidates')
         .delete()
         .eq('id', id)
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
       if (error) {
         throw error;
@@ -209,22 +227,31 @@ export function useCandidates() {
   };
 
   // Get candidate by ID
-  const getCandidateById = (id: string) => {
+  const getCandidateById = useCallback((id: string) => {
     return candidates.find(candidate => candidate.id === id);
-  };
+  }, [candidates]);
 
   // Get candidates by status
-  const getCandidatesByStatus = (status: Candidate['status']) => {
+  const getCandidatesByStatus = useCallback((status: Candidate['status']) => {
     return candidates.filter(candidate => candidate.status === status);
-  };
+  }, [candidates]);
 
   const updateCandidateOrder = async (candidateId: string, newOrderIndex: number) => {
+    if (!user) {
+      toast({
+        title: "Errore",
+        description: "Devi essere autenticato",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     try {
       const { error } = await supabase
         .from('candidates')
         .update({ order_index: newOrderIndex })
         .eq('id', candidateId)
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
       if (error) {
         throw error;
@@ -243,13 +270,22 @@ export function useCandidates() {
   };
 
   const reorderCandidates = async (reorderedCandidates: Candidate[]) => {
+    if (!user) {
+      toast({
+        title: "Errore",
+        description: "Devi essere autenticato",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     try {
       const updates = reorderedCandidates.map((candidate, index) =>
         supabase
           .from('candidates')
           .update({ order_index: index })
           .eq('id', candidate.id)
-          .eq('user_id', user?.id)
+          .eq('user_id', user.id)
       );
 
       await Promise.all(updates);
@@ -267,7 +303,7 @@ export function useCandidates() {
     }
   };
 
-  const getStats = () => {
+  const getStats = useCallback(() => {
     return {
       total: candidates.length,
       new: candidates.filter(c => c.status === 'new').length,
@@ -276,11 +312,12 @@ export function useCandidates() {
       hired: candidates.filter(c => c.status === 'hired').length,
       rejected: candidates.filter(c => c.status === 'rejected').length,
     };
-  };
+  }, [candidates]);
 
+  // useEffect con dipendenze corrette
   useEffect(() => {
     fetchCandidates();
-  }, [user]);
+  }, [fetchCandidates]);
 
   return {
     candidates,
