@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   Filter,
@@ -234,9 +234,9 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [orderedCandidates, setOrderedCandidates] = useState<Candidate[]>([]);
 
-  useState(() => {
+  useEffect(() => {
     setOrderedCandidates(candidates);
-  });
+  }, [candidates]);
 
   const handleExport = () => {
     const csvContent = [
