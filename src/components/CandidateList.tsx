@@ -237,7 +237,7 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<string>("recent");
+  const [sortBy, setSortBy] = useState<string>("manual");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [orderedCandidates, setOrderedCandidates] = useState<Candidate[]>([]);
 
@@ -274,6 +274,7 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
 
   const handleReorder = (newOrder: Candidate[]) => {
     setOrderedCandidates(newOrder);
+    setSortBy("manual"); // Imposta automaticamente l'ordinamento manuale
     reorderCandidates(newOrder);
   };
 
@@ -294,8 +295,11 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
         case 'name':
           return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
         case 'recent':
-        default:
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'manual':
+        default:
+          // Rispetta l'ordine dal database (order_index)
+          return 0;
       }
     });
 
@@ -365,6 +369,7 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
             <SelectValue placeholder="Ordina per" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="manual">Ordine manuale</SelectItem>
             <SelectItem value="recent">Più recenti</SelectItem>
             <SelectItem value="name">Nome</SelectItem>
           </SelectContent>
