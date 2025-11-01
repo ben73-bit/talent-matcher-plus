@@ -64,6 +64,7 @@ interface CandidateItemProps {
 
 const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCandidate }: CandidateItemProps) => {
   const dragControls = useDragControls();
+  const [isDragging, setIsDragging] = useState(false);
 
   return (
     <Reorder.Item
@@ -72,6 +73,8 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
       dragControls={dragControls}
       as="div"
       className="mb-4"
+      onDragStart={() => setIsDragging(true)}
+      onDragEnd={() => setTimeout(() => setIsDragging(false), 100)}
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -81,7 +84,11 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
       >
         <Card
           className="bg-gradient-card border-0 shadow-soft hover:shadow-medium transition-smooth cursor-pointer group"
-          onClick={() => onViewCandidate?.(candidate.id)}
+          onClick={() => {
+            if (!isDragging) {
+              onViewCandidate?.(candidate.id);
+            }
+          }}
         >
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
