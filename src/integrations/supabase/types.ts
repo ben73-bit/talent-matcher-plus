@@ -25,6 +25,7 @@ export type Database = {
           id: string
           last_name: string
           notes: string | null
+          order_index: number | null
           phone: string | null
           photo_url: string | null
           position: string | null
@@ -43,6 +44,7 @@ export type Database = {
           id?: string
           last_name: string
           notes?: string | null
+          order_index?: number | null
           phone?: string | null
           photo_url?: string | null
           position?: string | null
@@ -61,6 +63,7 @@ export type Database = {
           id?: string
           last_name?: string
           notes?: string | null
+          order_index?: number | null
           phone?: string | null
           photo_url?: string | null
           position?: string | null

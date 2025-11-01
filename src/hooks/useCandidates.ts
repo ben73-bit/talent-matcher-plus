@@ -222,7 +222,7 @@ export function useCandidates() {
     try {
       const { error } = await supabase
         .from('candidates')
-        .update({ order_index: newOrderIndex })
+        .update({ order_index: newOrderIndex } as any)
         .eq('id', candidateId)
         .eq('user_id', user?.id);
 
@@ -247,7 +247,7 @@ export function useCandidates() {
       const updates = reorderedCandidates.map((candidate, index) =>
         supabase
           .from('candidates')
-          .update({ order_index: index })
+          .update({ order_index: index } as any)
           .eq('id', candidate.id)
           .eq('user_id', user?.id)
       );
