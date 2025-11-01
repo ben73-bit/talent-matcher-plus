@@ -35,6 +35,8 @@ import {
 } from "@/components/ui/select";
 import { useCandidates, Candidate } from "@/hooks/useCandidates";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
+import { EmailModal } from "./EmailModal";
 
 const getStatusBadge = (status: Candidate['status']) => {
   const statusMap = {
@@ -61,9 +63,11 @@ interface CandidateItemProps {
   onViewCandidate?: (candidateId: string) => void;
   deleteCandidate: (id: string) => void;
   updateCandidate: (id: string, updates: any) => void;
+  emailService: string;
+  onEmailClick: (candidate: Candidate) => void;
 }
 
-const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCandidate }: CandidateItemProps) => {
+const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCandidate, emailService, onEmailClick }: CandidateItemProps) => {
   const dragControls = useDragControls();
   const [isDragging, setIsDragging] = useState(false);
 
@@ -191,7 +195,7 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.open(`mailto:${candidate.email}`, '_blank');
+                        onEmailClick(candidate);
                       }}
                     >
                       <Mail className="mr-2 h-4 w-4" />
@@ -238,12 +242,15 @@ interface CandidateListProps {
 
 export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
   const { candidates, loading, deleteCandidate, updateCandidate, reorderCandidates } = useCandidates();
+  const { profile } = useProfile();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("manual");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [orderedCandidates, setOrderedCandidates] = useState<Candidate[]>([]);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   useEffect(() => {
     setOrderedCandidates(candidates);
@@ -414,6 +421,11 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
               onViewCandidate={onViewCandidate}
               deleteCandidate={deleteCandidate}
               updateCandidate={updateCandidate}
+              emailService={profile?.email_service || 'outlook'}
+              onEmailClick={(candidate) => {
+                setSelectedCandidate(candidate);
+                setShowEmailModal(true);
+              }}
             />
           ))}
         </Reorder.Group>
@@ -462,6 +474,13 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <EmailModal
+        open={showEmailModal}
+        onOpenChange={setShowEmailModal}
+        candidate={selectedCandidate}
+        emailService={profile?.email_service || 'outlook'}
+      />
     </motion.div>
   );
 };

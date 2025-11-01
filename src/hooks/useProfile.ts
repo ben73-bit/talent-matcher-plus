@@ -19,6 +19,7 @@ interface Profile {
   openai_api_key: string | null;
   google_ai_api_key: string | null;
   language: string | null;
+  email_service: string | null;
   created_at: string;
   updated_at: string;
 }

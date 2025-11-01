@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Sidebar } from '@/components/Sidebar';
 import { Navigation } from '@/components/Navigation';
-import { Eye, EyeOff, Key, Globe, Bell, Shield, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Key, Globe, Bell, Shield, ArrowLeft, Mail } from 'lucide-react';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -27,6 +27,7 @@ export default function SettingsPage() {
   const [showGoogleKey, setShowGoogleKey] = useState(false);
   const [language, setLanguage] = useState(profile?.language || 'it');
   const [emailNotifications, setEmailNotifications] = useState(profile?.email_notifications ?? true);
+  const [emailService, setEmailService] = useState(profile?.email_service || 'outlook');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSaveApiKeys = async () => {
@@ -52,6 +53,7 @@ export default function SettingsPage() {
       await updateProfile({
         language,
         email_notifications: emailNotifications,
+        email_service: emailService,
       });
     } finally {
       setIsLoading(false);
@@ -188,6 +190,43 @@ export default function SettingsPage() {
 
                 <Button onClick={handleSaveApiKeys} disabled={isLoading}>
                   Salva Chiavi API
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Email Service Section */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  <CardTitle>Servizio Email</CardTitle>
+                </div>
+                <CardDescription>
+                  Scegli come inviare le email ai candidati
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email-service">Metodo di Invio Email</Label>
+                  <Select value={emailService} onValueChange={setEmailService}>
+                    <SelectTrigger id="email-service">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="outlook">Outlook (mailto)</SelectItem>
+                      <SelectItem value="browser">Browser (Composizione)</SelectItem>
+                      <SelectItem value="gmail">Gmail (API)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {emailService === 'outlook' && 'Aprirà il tuo client Outlook di default'}
+                    {emailService === 'browser' && 'Aprirà un form di composizione email nel browser'}
+                    {emailService === 'gmail' && 'Invierà direttamente tramite Gmail (richiede configurazione)'}
+                  </p>
+                </div>
+
+                <Button onClick={handleSavePreferences} disabled={isLoading}>
+                  Salva Impostazioni Email
                 </Button>
               </CardContent>
             </Card>
