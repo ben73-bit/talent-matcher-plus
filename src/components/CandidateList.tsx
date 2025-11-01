@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
@@ -104,9 +105,12 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
                   <GripVertical className="h-5 w-5 text-muted-foreground" />
                 </div>
 
-                <div className="h-12 w-12 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-medium text-lg">
-                  {candidate.first_name[0]}{candidate.last_name[0]}
-                </div>
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={candidate.photo_url || undefined} alt={`${candidate.first_name} ${candidate.last_name}`} />
+                  <AvatarFallback className="bg-gradient-primary text-primary-foreground font-medium text-lg">
+                    {candidate.first_name[0]}{candidate.last_name[0]}
+                  </AvatarFallback>
+                </Avatar>
 
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center space-x-3">
