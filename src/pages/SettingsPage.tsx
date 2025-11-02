@@ -29,6 +29,12 @@ export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(profile?.email_notifications ?? true);
   const [emailService, setEmailService] = useState(profile?.email_service || 'outlook');
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSaveApiKeys = async () => {
     setIsLoading(true);
@@ -54,6 +60,52 @@ export default function SettingsPage() {
         language,
         email_notifications: emailNotifications,
         email_service: emailService,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: 'Errore',
+        description: 'Le password non coincidono',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: 'Errore',
+        description: 'La password deve contenere almeno 6 caratteri',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Password aggiornata',
+        description: 'La tua password è stata cambiata con successo',
+      });
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error: any) {
+      toast({
+        title: 'Errore',
+        description: error.message || 'Impossibile aggiornare la password',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -297,6 +349,68 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label>Email Account</Label>
                   <Input value={user?.email || ''} disabled />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Cambia Password</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Aggiorna la tua password per mantenere il tuo account sicuro
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">Nuova Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="new-password"
+                        type={showNewPassword ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Inserisci nuova password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                      >
+                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Conferma Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirm-password"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Conferma nuova password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={handleChangePassword} 
+                    disabled={isLoading || !newPassword || !confirmPassword}
+                  >
+                    Aggiorna Password
+                  </Button>
                 </div>
 
                 <Separator />
