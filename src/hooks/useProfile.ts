@@ -20,6 +20,9 @@ interface Profile {
   google_ai_api_key: string | null;
   language: string | null;
   email_service: string | null;
+  export_format: string | null;
+  export_include_photos: boolean | null;
+  export_include_cvs: boolean | null;
   created_at: string;
   updated_at: string;
 }

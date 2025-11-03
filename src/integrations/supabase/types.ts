@@ -82,6 +82,10 @@ export type Database = {
           created_at: string
           email: string | null
           email_notifications: boolean | null
+          email_service: string | null
+          export_format: string | null
+          export_include_cvs: boolean | null
+          export_include_photos: boolean | null
           first_name: string | null
           google_ai_api_key: string | null
           id: string
@@ -101,6 +105,10 @@ export type Database = {
           created_at?: string
           email?: string | null
           email_notifications?: boolean | null
+          email_service?: string | null
+          export_format?: string | null
+          export_include_cvs?: boolean | null
+          export_include_photos?: boolean | null
           first_name?: string | null
           google_ai_api_key?: string | null
           id?: string
@@ -120,6 +128,10 @@ export type Database = {
           created_at?: string
           email?: string | null
           email_notifications?: boolean | null
+          email_service?: string | null
+          export_format?: string | null
+          export_include_cvs?: boolean | null
+          export_include_photos?: boolean | null
           first_name?: string | null
           google_ai_api_key?: string | null
           id?: string
