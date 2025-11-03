@@ -23,6 +23,9 @@ interface Profile {
   export_format: string | null;
   export_include_photos: boolean | null;
   export_include_cvs: boolean | null;
+  dashboard_widgets: Record<string, boolean> | null;
+  report_metrics: string[] | null;
+  report_layout: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -80,6 +80,7 @@ export type Database = {
           bio: string | null
           company: string | null
           created_at: string
+          dashboard_widgets: Json | null
           email: string | null
           email_notifications: boolean | null
           email_service: string | null
@@ -93,6 +94,8 @@ export type Database = {
           last_name: string | null
           openai_api_key: string | null
           phone: string | null
+          report_layout: string | null
+          report_metrics: Json | null
           role: string | null
           theme: string | null
           updated_at: string
@@ -103,6 +106,7 @@ export type Database = {
           bio?: string | null
           company?: string | null
           created_at?: string
+          dashboard_widgets?: Json | null
           email?: string | null
           email_notifications?: boolean | null
           email_service?: string | null
@@ -116,6 +120,8 @@ export type Database = {
           last_name?: string | null
           openai_api_key?: string | null
           phone?: string | null
+          report_layout?: string | null
+          report_metrics?: Json | null
           role?: string | null
           theme?: string | null
           updated_at?: string
@@ -126,6 +132,7 @@ export type Database = {
           bio?: string | null
           company?: string | null
           created_at?: string
+          dashboard_widgets?: Json | null
           email?: string | null
           email_notifications?: boolean | null
           email_service?: string | null
@@ -139,6 +146,8 @@ export type Database = {
           last_name?: string | null
           openai_api_key?: string | null
           phone?: string | null
+          report_layout?: string | null
+          report_metrics?: Json | null
           role?: string | null
           theme?: string | null
           updated_at?: string

@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Sidebar } from '@/components/Sidebar';
 import { Navigation } from '@/components/Navigation';
-import { Eye, EyeOff, Key, Globe, Bell, Shield, ArrowLeft, Mail, FileDown } from 'lucide-react';
+import { Eye, EyeOff, Key, Globe, Bell, Shield, ArrowLeft, Mail, FileDown, LayoutDashboard } from 'lucide-react';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -31,6 +31,13 @@ export default function SettingsPage() {
   const [exportFormat, setExportFormat] = useState(profile?.export_format || 'csv');
   const [exportIncludePhotos, setExportIncludePhotos] = useState(profile?.export_include_photos ?? true);
   const [exportIncludeCvs, setExportIncludeCvs] = useState(profile?.export_include_cvs ?? false);
+  const [dashboardWidgets, setDashboardWidgets] = useState<Record<string, boolean>>(
+    profile?.dashboard_widgets || { stats: true, recent: true, charts: true }
+  );
+  const [reportMetrics, setReportMetrics] = useState<string[]>(
+    profile?.report_metrics || ['total', 'new', 'contacted', 'interviewed']
+  );
+  const [reportLayout, setReportLayout] = useState(profile?.report_layout || 'grid');
   const [isLoading, setIsLoading] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -76,6 +83,19 @@ export default function SettingsPage() {
         export_format: exportFormat,
         export_include_photos: exportIncludePhotos,
         export_include_cvs: exportIncludeCvs,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveDashboardPreferences = async () => {
+    setIsLoading(true);
+    try {
+      await updateProfile({
+        dashboard_widgets: dashboardWidgets,
+        report_metrics: reportMetrics,
+        report_layout: reportLayout,
       });
     } finally {
       setIsLoading(false);
@@ -408,6 +428,138 @@ export default function SettingsPage() {
 
                 <Button onClick={handleSaveExportPreferences} disabled={isLoading}>
                   Salva Preferenze di Esportazione
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Dashboard & Report Customization Section */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <LayoutDashboard className="h-5 w-5" />
+                  <CardTitle>Personalizzazione Dashboard e Report</CardTitle>
+                </div>
+                <CardDescription>
+                  Personalizza la tua dashboard e come visualizzare i report
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Widget Dashboard</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Scegli quali widget visualizzare sulla dashboard
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="widget-stats">Statistiche</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Mostra le card con le statistiche principali
+                        </p>
+                      </div>
+                      <Switch
+                        id="widget-stats"
+                        checked={dashboardWidgets.stats}
+                        onCheckedChange={(checked) => 
+                          setDashboardWidgets({ ...dashboardWidgets, stats: checked })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="widget-recent">Candidati Recenti</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Mostra la lista dei candidati più recenti
+                        </p>
+                      </div>
+                      <Switch
+                        id="widget-recent"
+                        checked={dashboardWidgets.recent}
+                        onCheckedChange={(checked) => 
+                          setDashboardWidgets({ ...dashboardWidgets, recent: checked })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="widget-charts">Pipeline Candidati</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Mostra il grafico della pipeline
+                        </p>
+                      </div>
+                      <Switch
+                        id="widget-charts"
+                        checked={dashboardWidgets.charts}
+                        onCheckedChange={(checked) => 
+                          setDashboardWidgets({ ...dashboardWidgets, charts: checked })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Configurazione Report</h4>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="report-layout">Layout Report</Label>
+                    <Select value={reportLayout} onValueChange={setReportLayout}>
+                      <SelectTrigger id="report-layout">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="grid">Griglia</SelectItem>
+                        <SelectItem value="list">Lista</SelectItem>
+                        <SelectItem value="compact">Compatto</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Metriche da Includere</Label>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Seleziona quali metriche includere nei report
+                    </p>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { id: 'total', label: 'Totale Candidati' },
+                        { id: 'new', label: 'Nuovi' },
+                        { id: 'contacted', label: 'Contattati' },
+                        { id: 'interviewed', label: 'Intervistati' },
+                        { id: 'hired', label: 'Assunti' },
+                        { id: 'rejected', label: 'Scartati' },
+                      ].map((metric) => (
+                        <div key={metric.id} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`metric-${metric.id}`}
+                            checked={reportMetrics.includes(metric.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setReportMetrics([...reportMetrics, metric.id]);
+                              } else {
+                                setReportMetrics(reportMetrics.filter(m => m !== metric.id));
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-input"
+                          />
+                          <Label htmlFor={`metric-${metric.id}`} className="text-sm font-normal">
+                            {metric.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <Button onClick={handleSaveDashboardPreferences} disabled={isLoading}>
+                  Salva Personalizzazioni
                 </Button>
               </CardContent>
             </Card>
