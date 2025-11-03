@@ -3,7 +3,7 @@ import { Bell, Settings, User, Search, LogOut, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -15,13 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-
-interface Notification {
-  id: number;
-  title: string;
-  description: string;
-  time: string;
-}
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface NavigationProps {
   onProfileClick?: () => void;
@@ -30,30 +24,11 @@ interface NavigationProps {
 export const Navigation = ({ onProfileClick }: NavigationProps) => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const { notifications, deleteNotification } = useNotifications();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: 1,
-      title: "Nuovo candidato aggiunto",
-      description: "Un nuovo candidato è stato inserito nel sistema",
-      time: "2 ore fa"
-    },
-    {
-      id: 2,
-      title: "Colloquio programmato",
-      description: "Colloquio fissato per domani alle 10:00",
-      time: "5 ore fa"
-    },
-    {
-      id: 3,
-      title: "Aggiornamento sistema",
-      description: "Nuove funzionalità disponibili",
-      time: "1 giorno fa"
-    }
-  ]);
 
-  const deleteNotification = (id: number) => {
-    setNotifications(prev => prev.filter(notif => notif.id !== id));
+  const handleDeleteNotification = (id: number) => {
+    deleteNotification(id);
     toast({
       title: "Notifica eliminata",
       description: "La notifica è stata rimossa",
@@ -181,7 +156,7 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => deleteNotification(notification.id)}
+                    onClick={() => handleDeleteNotification(notification.id)}
                   >
                     <X className="h-4 w-4" />
                   </Button>
