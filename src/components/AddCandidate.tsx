@@ -8,7 +8,8 @@ import {
   Briefcase,
   FileText,
   Sparkles,
-  ArrowLeft
+  ArrowLeft,
+  AlertTriangle
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
@@ -19,6 +20,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -37,7 +48,7 @@ interface AddCandidateProps {
 export const AddCandidate = ({ onBack }: AddCandidateProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { createCandidate } = useCandidates();
+  const { createCandidate, candidates } = useCandidates();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
@@ -46,6 +57,9 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
   const [uploadedCV, setUploadedCV] = useState<File | null>(null);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [tempPhotoSrc, setTempPhotoSrc] = useState<string>("");
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [duplicateCandidates, setDuplicateCandidates] = useState<any[]>([]);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -158,6 +172,15 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
     }
   };
 
+  const checkForDuplicates = () => {
+    const duplicates = candidates.filter(
+      candidate => 
+        candidate.first_name.toLowerCase() === formData.firstName.toLowerCase() &&
+        candidate.last_name.toLowerCase() === formData.lastName.toLowerCase()
+    );
+    return duplicates;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -168,6 +191,16 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
         variant: "destructive",
       });
       return;
+    }
+
+    // Check for duplicates before submitting
+    if (!pendingSubmit) {
+      const duplicates = checkForDuplicates();
+      if (duplicates.length > 0) {
+        setDuplicateCandidates(duplicates);
+        setDuplicateDialogOpen(true);
+        return;
+      }
     }
     
     setIsSubmitting(true);
@@ -244,6 +277,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
         setUploadedPhoto(null);
         setPhotoPreview("");
         setUploadedCV(null);
+        setPendingSubmit(false);
         
         // Go back to candidate list
         onBack();
@@ -257,6 +291,17 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
       });
     } finally {
       setIsSubmitting(false);
+      setPendingSubmit(false);
+    }
+  };
+
+  const handleConfirmDuplicate = () => {
+    setPendingSubmit(true);
+    setDuplicateDialogOpen(false);
+    // Trigger the form submission again, but this time pendingSubmit is true
+    const form = document.querySelector('form');
+    if (form) {
+      form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
     }
   };
 
@@ -558,6 +603,61 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
         imageSrc={tempPhotoSrc}
         onCropComplete={handleCropComplete}
       />
+
+      {/* Duplicate Warning Dialog */}
+      <AlertDialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Possibile Candidato Duplicato
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p>
+                È stato trovato un candidato con lo stesso nome e cognome nel sistema:
+              </p>
+              <div className="space-y-2">
+                {duplicateCandidates.map((candidate) => (
+                  <Card key={candidate.id} className="p-3 bg-muted/50">
+                    <div className="space-y-1">
+                      <p className="font-medium">
+                        {candidate.first_name} {candidate.last_name}
+                      </p>
+                      {candidate.email && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {candidate.email}
+                        </p>
+                      )}
+                      {candidate.phone && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {candidate.phone}
+                        </p>
+                      )}
+                      {candidate.position && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Briefcase className="h-3 w-3" />
+                          {candidate.position}
+                        </p>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+              <p className="text-sm">
+                Vuoi continuare comunque con l'inserimento di questo nuovo candidato?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDuplicate}>
+              Continua Comunque
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Features Info */}
       <Card className="bg-primary-light border-primary/20 shadow-soft">
