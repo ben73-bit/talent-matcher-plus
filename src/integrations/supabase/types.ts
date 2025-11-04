@@ -14,33 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      candidate_shares: {
-        Row: {
-          created_at: string
-          id: string
-          owner_id: string
-          role: Database["public"]["Enums"]["share_role"]
-          shared_with_user_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          owner_id: string
-          role?: Database["public"]["Enums"]["share_role"]
-          shared_with_user_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          owner_id?: string
-          role?: Database["public"]["Enums"]["share_role"]
-          shared_with_user_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       candidates: {
         Row: {
           company: string | null
@@ -182,46 +155,15 @@ export type Database = {
         }
         Relationships: []
       }
-      share_invitations: {
-        Row: {
-          created_at: string
-          expires_at: string
-          id: string
-          invited_email: string
-          owner_id: string
-          status: Database["public"]["Enums"]["invitation_status"]
-        }
-        Insert: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          invited_email: string
-          owner_id: string
-          status?: Database["public"]["Enums"]["invitation_status"]
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          invited_email?: string
-          owner_id?: string
-          status?: Database["public"]["Enums"]["invitation_status"]
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      has_candidate_access: {
-        Args: { _owner_id: string; _user_id: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      invitation_status: "pending" | "accepted" | "rejected"
-      share_role: "viewer"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -348,9 +290,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      invitation_status: ["pending", "accepted", "rejected"],
-      share_role: ["viewer"],
-    },
+    Enums: {},
   },
 } as const
