@@ -6,7 +6,7 @@ import { Dashboard } from "@/components/Dashboard";
 import { CandidateList } from "@/components/CandidateList";
 import { AddCandidate } from "@/components/AddCandidate";
 import { EditCandidate } from "@/components/EditCandidate";
-
+import { DatabaseManager } from "@/components/DatabaseManager";
 import { CandidateDetailsDialog } from "@/components/CandidateDetailsDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useCandidates } from "@/hooks/useCandidates";
@@ -113,6 +113,8 @@ const Index = () => {
     switch (activeTab) {
       case "dashboard":
         return <Dashboard onNavigate={setActiveTab} />;
+      case "databases":
+        return <DatabaseManager />;
       case "candidates":
         return <CandidateList onViewCandidate={handleViewCandidate} />;
       case "add-candidate":

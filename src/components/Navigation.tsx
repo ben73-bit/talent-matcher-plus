@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Bell, Settings, User, Search, LogOut, X } from "lucide-react";
+import { Bell, Settings, User, Search, LogOut, X, Check } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { it } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -24,15 +26,26 @@ interface NavigationProps {
 export const Navigation = ({ onProfileClick }: NavigationProps) => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const { notifications, deleteNotification } = useNotifications();
+  const { notifications, unreadCount, markAsRead, acceptInvitation } = useNotifications();
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const handleDeleteNotification = (id: number) => {
-    deleteNotification(id);
-    toast({
-      title: "Notifica eliminata",
-      description: "La notifica è stata rimossa",
-    });
+  const handleMarkAsRead = async (id: string) => {
+    await markAsRead(id);
+  };
+
+  const handleAcceptInvitation = async (notificationId: string, invitationId: string) => {
+    const success = await acceptInvitation(notificationId, invitationId);
+    if (success) {
+      setShowNotifications(false);
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true, locale: it });
+    } catch {
+      return dateString;
+    }
   };
 
   const handleSignOut = async () => {
@@ -83,9 +96,9 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
             onClick={() => setShowNotifications(true)}
           >
             <Bell className="h-4 w-4" />
-            {notifications.length > 0 && (
+            {unreadCount > 0 && (
               <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs">
-                {notifications.length}
+                {unreadCount}
               </Badge>
             )}
           </Button>
@@ -126,11 +139,11 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
       </div>
 
       <Dialog open={showNotifications} onOpenChange={setShowNotifications}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Notifiche ({notifications.length})</DialogTitle>
+            <DialogTitle>Notifiche ({unreadCount > 0 ? `${unreadCount} non lette` : 'tutte lette'})</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 py-4">
             {notifications.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Bell className="h-12 w-12 mx-auto mb-3 opacity-30" />
@@ -138,21 +151,56 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
               </div>
             ) : (
               notifications.map((notification) => (
-                <div key={notification.id} className="flex items-start space-x-3 p-3 bg-secondary/50 rounded-lg group relative">
-                  <Bell className="h-5 w-5 text-primary mt-0.5" />
-                  <div className="flex-1">
-                    <p className="font-medium">{notification.title}</p>
-                    <p className="text-sm text-muted-foreground">{notification.description}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                <div 
+                  key={notification.id} 
+                  className={`flex items-start space-x-3 p-4 rounded-lg border transition-fast ${
+                    notification.read 
+                      ? 'bg-card border-border' 
+                      : 'bg-primary/5 border-primary/20'
+                  }`}
+                >
+                  <Bell className={`h-5 w-5 mt-0.5 ${notification.read ? 'text-muted-foreground' : 'text-primary'}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium">{notification.title}</p>
+                      {!notification.read && (
+                        <Badge variant="default" className="text-xs shrink-0">Nuova</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
+                    <p className="text-xs text-muted-foreground mt-2">{formatTime(notification.created_at)}</p>
+                    
+                    {notification.type === 'database_invitation' && notification.data?.invitation_id && !notification.read && (
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          onClick={() => handleAcceptInvitation(notification.id, notification.data.invitation_id)}
+                          className="flex items-center gap-1"
+                        >
+                          <Check className="h-3 w-3" />
+                          Accetta
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkAsRead(notification.id)}
+                        >
+                          Ignora
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {notification.read && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 text-xs"
+                        onClick={() => handleMarkAsRead(notification.id)}
+                      >
+                        Segna come letta
+                      </Button>
+                    )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => handleDeleteNotification(notification.id)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
                 </div>
               ))
             )}

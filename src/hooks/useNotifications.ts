@@ -1,104 +1,177 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
+import { useToast } from '@/components/ui/use-toast';
 
 export interface Notification {
-  id: number;
+  id: string;
+  user_id: string;
+  type: string;
   title: string;
-  description: string;
-  time: string;
-  timestamp: number;
+  message: string;
+  data?: any;
+  read: boolean;
+  created_at: string;
 }
-
-const NOTIFICATIONS_STORAGE_KEY = 'app_notifications';
-const DEFAULT_NOTIFICATIONS: Notification[] = [
-  {
-    id: 1,
-    title: "Nuovo candidato aggiunto",
-    description: "Un nuovo candidato è stato inserito nel sistema",
-    time: "2 ore fa",
-    timestamp: Date.now() - 2 * 60 * 60 * 1000
-  },
-  {
-    id: 2,
-    title: "Colloquio programmato",
-    description: "Colloquio fissato per domani alle 10:00",
-    time: "5 ore fa",
-    timestamp: Date.now() - 5 * 60 * 60 * 1000
-  },
-  {
-    id: 3,
-    title: "Aggiornamento sistema",
-    description: "Nuove funzionalità disponibili",
-    time: "1 giorno fa",
-    timestamp: Date.now() - 24 * 60 * 60 * 1000
-  }
-];
 
 export function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const fetchNotifications = async () => {
+    if (!user) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      const notifs = (data || []) as Notification[];
+      setNotifications(notifs);
+      setUnreadCount(notifs.filter(n => !n.read).length);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      setNotifications(prev =>
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user?.id)
+        .eq('read', false);
+
+      if (error) throw error;
+
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+
+      toast({
+        title: "Successo",
+        description: "Tutte le notifiche sono state lette",
+      });
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile aggiornare le notifiche",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const acceptInvitation = async (notificationId: string, invitationId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('accept_database_invitation', {
+        invitation_id: invitationId
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        await markAsRead(notificationId);
+        toast({
+          title: "Successo",
+          description: "Invito accettato con successo",
+        });
+        return true;
+      } else {
+        toast({
+          title: "Errore",
+          description: "Invito non valido o già accettato",
+          variant: "destructive",
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('Error accepting invitation:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile accettare l'invito",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
 
   useEffect(() => {
-    const loadNotifications = () => {
-      try {
-        const stored = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
-        if (stored) {
-          setNotifications(JSON.parse(stored));
-        } else {
-          setNotifications(DEFAULT_NOTIFICATIONS);
-          localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(DEFAULT_NOTIFICATIONS));
-        }
-      } catch (error) {
-        console.error('Error loading notifications:', error);
-        setNotifications(DEFAULT_NOTIFICATIONS);
-      }
-      setIsInitialized(true);
-    };
+    fetchNotifications();
 
-    loadNotifications();
-  }, []);
+    // Subscribe to real-time notifications
+    if (user) {
+      const channel = supabase
+        .channel('notifications-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            const newNotification = payload.new as Notification;
+            setNotifications(prev => [newNotification, ...prev]);
+            setUnreadCount(prev => prev + 1);
+            
+            // Show toast for new notification
+            toast({
+              title: newNotification.title,
+              description: newNotification.message,
+            });
+          }
+        )
+        .subscribe();
 
-  const deleteNotification = (id: number) => {
-    setNotifications((prev) => {
-      const updated = prev.filter((notif) => notif.id !== id);
-      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  const addNotification = (notification: Omit<Notification, 'id' | 'timestamp'>) => {
-    setNotifications((prev) => {
-      const newId = Math.max(...prev.map((n) => n.id), 0) + 1;
-      const newNotification: Notification = {
-        ...notification,
-        id: newId,
-        timestamp: Date.now(),
+      return () => {
+        supabase.removeChannel(channel);
       };
-      const updated = [newNotification, ...prev];
-      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  const clearAllNotifications = () => {
-    setNotifications([]);
-    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify([]));
-  };
-
-  const markAllAsRead = () => {
-    const updated = notifications.map((notif) => ({
-      ...notif,
-      unread: false,
-    }));
-    setNotifications(updated);
-    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
-  };
+    }
+  }, [user]);
 
   return {
     notifications,
-    isInitialized,
-    deleteNotification,
-    addNotification,
-    clearAllNotifications,
+    unreadCount,
+    loading,
+    markAsRead,
     markAllAsRead,
+    acceptInvitation,
+    refetch: fetchNotifications,
   };
 }
