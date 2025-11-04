@@ -112,13 +112,6 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
                 <User className="mr-2 h-4 w-4" />
                 Profilo
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="cursor-pointer"
-                onClick={() => toast({ title: 'Impostazioni', description: 'Funzionalità in arrivo' })}
-              >
-                <Settings className="mr-2 h-4 w-4" />
-                Impostazioni
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="cursor-pointer text-red-600"
