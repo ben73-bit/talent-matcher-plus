@@ -356,8 +356,22 @@ export type Database = {
         Args: { invitation_id: string }
         Returns: boolean
       }
+      get_user_collaborator_databases: {
+        Args: { _user_id: string }
+        Returns: {
+          database_id: string
+        }[]
+      }
       has_candidate_access: {
         Args: { _owner_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_database_collaborator: {
+        Args: { _database_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_database_owner: {
+        Args: { _database_id: string; _user_id: string }
         Returns: boolean
       }
     }
