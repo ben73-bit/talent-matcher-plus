@@ -21,6 +21,7 @@ const Index = () => {
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCandidateId, setEditingCandidateId] = useState<string | null>(null);
+  const [selectedDatabaseId, setSelectedDatabaseId] = useState<string | null>(null);
 
   const handleViewCandidate = (candidateId: string) => {
     console.log('Viewing candidate:', candidateId);
@@ -109,14 +110,25 @@ const Index = () => {
     }
   };
 
+  const handleViewDatabaseCandidates = (databaseId: string) => {
+    setSelectedDatabaseId(databaseId);
+    setActiveTab("candidates");
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
         return <Dashboard onNavigate={setActiveTab} />;
       case "databases":
-        return <DatabaseManager />;
+        return <DatabaseManager onViewCandidates={handleViewDatabaseCandidates} />;
       case "candidates":
-        return <CandidateList onViewCandidate={handleViewCandidate} />;
+        return (
+          <CandidateList 
+            onViewCandidate={handleViewCandidate} 
+            filterDatabaseId={selectedDatabaseId}
+            onClearFilter={() => setSelectedDatabaseId(null)}
+          />
+        );
       case "add-candidate":
         return <AddCandidate onBack={() => setActiveTab("candidates")} />;
       case "edit-candidate":

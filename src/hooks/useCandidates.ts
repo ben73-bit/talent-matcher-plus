@@ -19,6 +19,7 @@ export interface Candidate {
   photo_url?: string;
   cv_url?: string;
   order_index?: number;
+  database_id?: string;
   created_at: string;
   updated_at: string;
 }

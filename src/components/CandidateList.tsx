@@ -238,9 +238,11 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
 
 interface CandidateListProps {
   onViewCandidate?: (candidateId: string) => void;
+  filterDatabaseId?: string | null;
+  onClearFilter?: () => void;
 }
 
-export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
+export const CandidateList = ({ onViewCandidate, filterDatabaseId, onClearFilter }: CandidateListProps) => {
   const { candidates, loading, deleteCandidate, updateCandidate, reorderCandidates } = useCandidates();
   const { profile } = useProfile();
   const { toast } = useToast();
@@ -299,7 +301,8 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
                            position.includes(searchTerm.toLowerCase()) ||
                            skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesStatus = statusFilter === "all" || candidate.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesDatabase = !filterDatabaseId || candidate.database_id === filterDatabaseId;
+      return matchesSearch && matchesStatus && matchesDatabase;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -331,7 +334,13 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
           <h1 className="text-3xl font-bold text-foreground">Candidati</h1>
           <p className="text-muted-foreground">
             Gestisci e visualizza tutti i candidati ({filteredCandidates.length})
+            {filterDatabaseId && ' - Database condiviso'}
           </p>
+          {filterDatabaseId && onClearFilter && (
+            <Button variant="link" onClick={onClearFilter} className="p-0 h-auto text-sm">
+              Visualizza tutti i candidati
+            </Button>
+          )}
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" onClick={handleExport}>

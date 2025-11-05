@@ -10,7 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import { useDatabases } from '@/hooks/useDatabases';
 import { CollaboratorManager } from './CollaboratorManager';
 
-export function DatabaseManager() {
+interface DatabaseManagerProps {
+  onViewCandidates?: (databaseId: string) => void;
+}
+
+export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
   const { ownDatabases, sharedDatabases, loading, createDatabase, deleteDatabase } = useDatabases();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedDatabase, setSelectedDatabase] = useState<string | null>(null);
@@ -181,7 +185,12 @@ export function DatabaseManager() {
                     )}
                   </CardHeader>
                   <CardContent>
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => onViewCandidates?.(database.id)}
+                    >
                       Visualizza Candidati
                     </Button>
                   </CardContent>
