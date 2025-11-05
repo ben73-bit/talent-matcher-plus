@@ -362,6 +362,7 @@ export type Database = {
           database_id: string
         }[]
       }
+      get_user_email: { Args: { _user_id: string }; Returns: string }
       has_candidate_access: {
         Args: { _owner_id: string; _user_id: string }
         Returns: boolean
