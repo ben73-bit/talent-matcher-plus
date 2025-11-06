@@ -37,6 +37,7 @@ export interface CreateCandidateData {
   status?: 'new' | 'contacted' | 'interviewed' | 'hired' | 'rejected';
   photo_url?: string;
   cv_url?: string;
+  database_id?: string;
 }
 
 export interface UpdateCandidateData {
@@ -52,6 +53,7 @@ export interface UpdateCandidateData {
   status?: 'new' | 'contacted' | 'interviewed' | 'hired' | 'rejected';
   photo_url?: string;
   cv_url?: string;
+  database_id?: string;
 }
 
 export function useCandidates() {

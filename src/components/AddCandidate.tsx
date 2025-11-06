@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useAuth } from "@/hooks/useAuth";
+import { useDatabases } from "@/hooks/useDatabases";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AddCandidateProps {
@@ -49,6 +50,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { createCandidate, candidates } = useCandidates();
+  const { ownDatabases } = useDatabases();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
@@ -69,7 +71,8 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
     company: "",
     experience: "",
     skills: [] as string[],
-    notes: ""
+    notes: "",
+    databaseId: ""
   });
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -258,6 +261,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
         status: 'new',
         photo_url: photoUrl || undefined,
         cv_url: cvUrl || undefined,
+        database_id: formData.databaseId || undefined,
       });
       
       if (candidate) {
@@ -271,7 +275,8 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
           company: "",
           experience: "",
           skills: [],
-          notes: ""
+          notes: "",
+          databaseId: ""
         });
         setExtractedData(null);
         setUploadedPhoto(null);
@@ -580,6 +585,29 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
                   placeholder="Inserisci note o osservazioni..."
                   rows={4}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="database">Database (Opzionale)</Label>
+                <Select 
+                  value={formData.databaseId}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, databaseId: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona un database" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nessun database</SelectItem>
+                    {ownDatabases.map((db) => (
+                      <SelectItem key={db.id} value={db.id}>
+                        {db.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Assegna il candidato a un database per condividerlo con i collaboratori
+                </p>
               </div>
 
               <div className="flex justify-end space-x-4 pt-4">

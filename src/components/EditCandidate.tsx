@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { useCandidates, Candidate } from "@/hooks/useCandidates";
 import { useAuth } from "@/hooks/useAuth";
+import { useDatabases } from "@/hooks/useDatabases";
 import { supabase } from "@/integrations/supabase/client";
 
 interface EditCandidateProps {
@@ -40,6 +41,7 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
   const { toast } = useToast();
   const { user } = useAuth();
   const { updateCandidate } = useCandidates();
+  const { ownDatabases } = useDatabases();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
@@ -57,7 +59,8 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
     company: candidate.company || "",
     experience: candidate.experience_years ? `${candidate.experience_years}+ anni` : "",
     skills: candidate.skills || [],
-    notes: candidate.notes || ""
+    notes: candidate.notes || "",
+    databaseId: candidate.database_id || ""
   });
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -216,6 +219,7 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
         notes: formData.notes,
         photo_url: photoUrl || undefined,
         cv_url: cvUrl || undefined,
+        database_id: formData.databaseId || undefined,
       });
       
       toast({
@@ -519,6 +523,29 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
                   placeholder="Note aggiuntive sul candidato..."
                   rows={4}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="database">Database (Opzionale)</Label>
+                <Select 
+                  value={formData.databaseId}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, databaseId: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona un database" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nessun database</SelectItem>
+                    {ownDatabases.map((db) => (
+                      <SelectItem key={db.id} value={db.id}>
+                        {db.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Assegna il candidato a un database per condividerlo con i collaboratori
+                </p>
               </div>
 
               <div className="flex gap-3 pt-4">
