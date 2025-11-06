@@ -528,14 +528,14 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
               <div className="space-y-2">
                 <Label htmlFor="database">Database (Opzionale)</Label>
                 <Select 
-                  value={formData.databaseId}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, databaseId: value }))}
+                  value={formData.databaseId || "none"}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, databaseId: value === "none" ? "" : value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleziona un database" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nessun database</SelectItem>
+                    <SelectItem value="none">Nessun database</SelectItem>
                     {ownDatabases.map((db) => (
                       <SelectItem key={db.id} value={db.id}>
                         {db.name}
