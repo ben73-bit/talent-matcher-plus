@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Database as DatabaseIcon, Users, Settings, Trash2, Share2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Database as DatabaseIcon, Users, Settings, Trash2, Share2, FileUser } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -15,11 +15,12 @@ interface DatabaseManagerProps {
 }
 
 export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
-  const { ownDatabases, sharedDatabases, loading, createDatabase, deleteDatabase } = useDatabases();
+  const { ownDatabases, sharedDatabases, loading, createDatabase, deleteDatabase, getCandidateCount } = useDatabases();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedDatabase, setSelectedDatabase] = useState<string | null>(null);
   const [newDatabaseName, setNewDatabaseName] = useState('');
   const [newDatabaseDescription, setNewDatabaseDescription] = useState('');
+  const [candidateCounts, setCandidateCounts] = useState<Record<string, number>>({});
 
   const handleCreateDatabase = async () => {
     if (!newDatabaseName.trim()) return;
@@ -35,6 +36,26 @@ export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
       await deleteDatabase(id);
     }
   };
+
+  useEffect(() => {
+    const loadCandidateCounts = async () => {
+      const allDatabases = [...ownDatabases, ...sharedDatabases];
+      const counts: Record<string, number> = {};
+      
+      await Promise.all(
+        allDatabases.map(async (db) => {
+          const count = await getCandidateCount(db.id);
+          counts[db.id] = count;
+        })
+      );
+      
+      setCandidateCounts(counts);
+    };
+
+    if (!loading) {
+      loadCandidateCounts();
+    }
+  }, [ownDatabases, sharedDatabases, loading]);
 
   if (loading) {
     return (
@@ -119,6 +140,10 @@ export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
               )}
             </CardHeader>
             <CardContent className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                <FileUser className="h-4 w-4" />
+                <span>{candidateCounts[database.id] || 0} candidati</span>
+              </div>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -184,7 +209,11 @@ export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
                       </CardDescription>
                     )}
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <FileUser className="h-4 w-4" />
+                      <span>{candidateCounts[database.id] || 0} candidati</span>
+                    </div>
                     <Button 
                       variant="outline" 
                       size="sm" 

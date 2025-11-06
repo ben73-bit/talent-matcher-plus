@@ -96,40 +96,6 @@ export function useNotifications() {
     }
   };
 
-  const acceptInvitation = async (notificationId: string, invitationId: string) => {
-    try {
-      const { data, error } = await supabase.rpc('accept_database_invitation', {
-        invitation_id: invitationId
-      });
-
-      if (error) throw error;
-
-      if (data) {
-        await markAsRead(notificationId);
-        toast({
-          title: "Successo",
-          description: "Invito accettato con successo",
-        });
-        return true;
-      } else {
-        toast({
-          title: "Errore",
-          description: "Invito non valido o già accettato",
-          variant: "destructive",
-        });
-        return false;
-      }
-    } catch (error) {
-      console.error('Error accepting invitation:', error);
-      toast({
-        title: "Errore",
-        description: "Impossibile accettare l'invito",
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
   useEffect(() => {
     fetchNotifications();
 
@@ -171,7 +137,6 @@ export function useNotifications() {
     loading,
     markAsRead,
     markAllAsRead,
-    acceptInvitation,
     refetch: fetchNotifications,
   };
 }

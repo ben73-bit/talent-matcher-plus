@@ -288,6 +288,65 @@ export function useDatabases() {
     }
   };
 
+  const acceptInvitation = async (invitationId: string, databaseId: string) => {
+    if (!user) return false;
+
+    try {
+      // Create collaborator record
+      const { error: collabError } = await supabase
+        .from('database_collaborators')
+        .insert([{
+          database_id: databaseId,
+          user_id: user.id,
+          role: 'viewer'
+        }]);
+
+      if (collabError) throw collabError;
+
+      // Update invitation as accepted
+      const { error: inviteError } = await supabase
+        .from('database_invitations')
+        .update({ accepted_at: new Date().toISOString() })
+        .eq('id', invitationId);
+
+      if (inviteError) throw inviteError;
+
+      // Refresh databases list
+      await fetchDatabases();
+
+      toast({
+        title: "Successo",
+        description: "Invito accettato con successo",
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Error accepting invitation:', error);
+      toast({
+        title: "Errore",
+        description: error.message || "Impossibile accettare l'invito",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const getCandidateCount = async (databaseId: string): Promise<number> => {
+    try {
+      const { count, error } = await supabase
+        .from('candidates')
+        .select('*', { count: 'exact', head: true })
+        .eq('database_id', databaseId);
+
+      if (error) throw error;
+
+      return count || 0;
+    } catch (error) {
+      console.error('Error counting candidates:', error);
+      return 0;
+    }
+  };
+
   useEffect(() => {
     fetchDatabases();
   }, [user]);
@@ -303,6 +362,8 @@ export function useDatabases() {
     getCollaborators,
     removeCollaborator,
     getPendingInvitations,
+    acceptInvitation,
+    getCandidateCount,
     refetch: fetchDatabases,
   };
 }
