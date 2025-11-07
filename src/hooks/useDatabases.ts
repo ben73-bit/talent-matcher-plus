@@ -288,38 +288,35 @@ export function useDatabases() {
     }
   };
 
-  const acceptInvitation = async (invitationId: string, databaseId: string) => {
+  const acceptInvitation = async (invitationId: string) => {
     if (!user) return false;
 
     try {
-      // Create collaborator record
-      const { error: collabError } = await supabase
-        .from('database_collaborators')
-        .insert([{
-          database_id: databaseId,
-          user_id: user.id,
-          role: 'viewer'
-        }]);
-
-      if (collabError) throw collabError;
-
-      // Update invitation as accepted
-      const { error: inviteError } = await supabase
-        .from('database_invitations')
-        .update({ accepted_at: new Date().toISOString() })
-        .eq('id', invitationId);
-
-      if (inviteError) throw inviteError;
-
-      // Refresh databases list
-      await fetchDatabases();
-
-      toast({
-        title: "Successo",
-        description: "Invito accettato con successo",
+      // Use the database RPC function to accept invitation
+      const { data, error } = await supabase.rpc('accept_database_invitation', {
+        invitation_id: invitationId
       });
 
-      return true;
+      if (error) throw error;
+
+      if (data) {
+        // Refresh databases list to show the newly shared database
+        await fetchDatabases();
+
+        toast({
+          title: "Successo",
+          description: "Invito accettato con successo",
+        });
+
+        return true;
+      } else {
+        toast({
+          title: "Errore",
+          description: "Invito non valido o già accettato",
+          variant: "destructive",
+        });
+        return false;
+      }
     } catch (error: any) {
       console.error('Error accepting invitation:', error);
       toast({

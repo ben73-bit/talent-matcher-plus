@@ -35,8 +35,8 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
     await markAsRead(id);
   };
 
-  const handleAcceptInvitation = async (notificationId: string, invitationId: string, databaseId: string) => {
-    const success = await acceptInvitation(invitationId, databaseId);
+  const handleAcceptInvitation = async (notificationId: string, invitationId: string) => {
+    const success = await acceptInvitation(invitationId);
     if (success) {
       await markAsRead(notificationId);
       setShowNotifications(false);
@@ -173,11 +173,11 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
                     <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
                     <p className="text-xs text-muted-foreground mt-2">{formatTime(notification.created_at)}</p>
                     
-                    {notification.type === 'database_invitation' && notification.data?.invitation_id && notification.data?.database_id && !notification.read && (
+                    {notification.type === 'database_invitation' && notification.data?.invitation_id && !notification.read && (
                       <div className="flex gap-2 mt-3">
                         <Button
                           size="sm"
-                          onClick={() => handleAcceptInvitation(notification.id, notification.data.invitation_id, notification.data.database_id)}
+                          onClick={() => handleAcceptInvitation(notification.id, notification.data.invitation_id)}
                           className="flex items-center gap-1"
                         >
                           <Check className="h-3 w-3" />
