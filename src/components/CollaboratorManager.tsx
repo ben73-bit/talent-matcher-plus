@@ -12,9 +12,10 @@ interface CollaboratorManagerProps {
   databaseId: string;
   isOpen: boolean;
   onClose: () => void;
+  onCollaboratorChange?: () => void;
 }
 
-export function CollaboratorManager({ databaseId, isOpen, onClose }: CollaboratorManagerProps) {
+export function CollaboratorManager({ databaseId, isOpen, onClose, onCollaboratorChange }: CollaboratorManagerProps) {
   const { inviteCollaborator, getCollaborators, removeCollaborator, getPendingInvitations } = useDatabases();
   const [collaborators, setCollaborators] = useState<DatabaseCollaborator[]>([]);
   const [pendingInvitations, setPendingInvitations] = useState<DatabaseInvitation[]>([]);
@@ -53,6 +54,7 @@ export function CollaboratorManager({ databaseId, isOpen, onClose }: Collaborato
       const success = await removeCollaborator(collaboratorId);
       if (success) {
         loadData();
+        onCollaboratorChange?.();
       }
     }
   };

@@ -308,6 +308,15 @@ export function useDatabases() {
           description: "Invito accettato con successo",
         });
 
+        // Trigger a broadcast to notify the database owner
+        await supabase
+          .channel('database_updates')
+          .send({
+            type: 'broadcast',
+            event: 'collaborator_added',
+            payload: { invitation_id: invitationId }
+          });
+
         return true;
       } else {
         toast({

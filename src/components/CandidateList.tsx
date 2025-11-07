@@ -243,7 +243,7 @@ interface CandidateListProps {
 }
 
 export const CandidateList = ({ onViewCandidate, filterDatabaseId, onClearFilter }: CandidateListProps) => {
-  const { candidates, loading, deleteCandidate, updateCandidate, reorderCandidates } = useCandidates();
+  const { candidates, loading, deleteCandidate, updateCandidate, reorderCandidates, fetchByDatabase } = useCandidates();
   const { profile } = useProfile();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -257,6 +257,15 @@ export const CandidateList = ({ onViewCandidate, filterDatabaseId, onClearFilter
   useEffect(() => {
     setOrderedCandidates(candidates);
   }, [candidates]);
+
+  // Ricarica i candidati quando cambia il database selezionato
+  useEffect(() => {
+    if (filterDatabaseId) {
+      fetchByDatabase(filterDatabaseId);
+    } else {
+      fetchByDatabase();
+    }
+  }, [filterDatabaseId]);
 
   const handleExport = () => {
     const csvContent = [

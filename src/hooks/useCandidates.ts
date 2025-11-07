@@ -63,7 +63,7 @@ export function useCandidates() {
   const { toast } = useToast();
 
   // Fetch candidates
-  const fetchCandidates = async () => {
+  const fetchCandidates = async (databaseId?: string) => {
     if (!user) {
       setCandidates([]);
       setLoading(false);
@@ -72,10 +72,17 @@ export function useCandidates() {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('candidates')
-        .select('*')
-        .eq('user_id', user.id)
+        .select('*');
+
+      // Se viene specificato un database_id, filtra per quello
+      // Altrimenti recupera tutti i candidati accessibili (RLS gestirà i permessi)
+      if (databaseId) {
+        query = query.eq('database_id', databaseId);
+      }
+
+      const { data, error } = await query
         .order('order_index', { ascending: true })
         .order('created_at', { ascending: false });
 
@@ -297,5 +304,6 @@ export function useCandidates() {
     updateCandidateOrder,
     reorderCandidates,
     refetch: fetchCandidates,
+    fetchByDatabase: fetchCandidates,
   };
 }

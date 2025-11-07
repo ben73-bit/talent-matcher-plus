@@ -15,7 +15,7 @@ interface DatabaseManagerProps {
 }
 
 export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
-  const { ownDatabases, sharedDatabases, loading, createDatabase, deleteDatabase, getCandidateCount } = useDatabases();
+  const { ownDatabases, sharedDatabases, loading, createDatabase, deleteDatabase, getCandidateCount, refetch } = useDatabases();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedDatabase, setSelectedDatabase] = useState<string | null>(null);
   const [newDatabaseName, setNewDatabaseName] = useState('');
@@ -236,6 +236,7 @@ export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
           databaseId={selectedDatabase}
           isOpen={!!selectedDatabase}
           onClose={() => setSelectedDatabase(null)}
+          onCollaboratorChange={refetch}
         />
       )}
     </div>
