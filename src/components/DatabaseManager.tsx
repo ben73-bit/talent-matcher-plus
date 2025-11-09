@@ -21,6 +21,7 @@ export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
   const [newDatabaseName, setNewDatabaseName] = useState('');
   const [newDatabaseDescription, setNewDatabaseDescription] = useState('');
   const [candidateCounts, setCandidateCounts] = useState<Record<string, number>>({});
+  const [collaboratorRefetchTrigger, setCollaboratorRefetchTrigger] = useState(0); // Nuovo stato per attivare il refetch
 
   const handleCreateDatabase = async () => {
     if (!newDatabaseName.trim()) return;
@@ -56,6 +57,12 @@ export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
       loadCandidateCounts();
     }
   }, [ownDatabases, sharedDatabases, loading]);
+
+  // Funzione per gestire il cambiamento dei collaboratori e attivare il refetch
+  const handleCollaboratorChange = () => {
+    refetch(); // Chiama il refetch principale da useDatabases
+    setCollaboratorRefetchTrigger(prev => prev + 1); // Incrementa per attivare l'useEffect di CollaboratorManager
+  };
 
   if (loading) {
     return (
@@ -236,7 +243,8 @@ export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
           databaseId={selectedDatabase}
           isOpen={!!selectedDatabase}
           onClose={() => setSelectedDatabase(null)}
-          onCollaboratorChange={refetch}
+          onCollaboratorChange={handleCollaboratorChange} // Usa il nuovo handler
+          refetchTrigger={collaboratorRefetchTrigger} // Passa il trigger
         />
       )}
     </div>

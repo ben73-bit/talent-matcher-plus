@@ -12,10 +12,11 @@ interface CollaboratorManagerProps {
   databaseId: string;
   isOpen: boolean;
   onClose: () => void;
-  onCollaboratorChange?: () => void;
+  onCollaboratorChange?: () => void; // Questo viene ora chiamato quando un collaboratore viene rimosso
+  refetchTrigger: number; // Nuova prop per attivare il refetch
 }
 
-export function CollaboratorManager({ databaseId, isOpen, onClose, onCollaboratorChange }: CollaboratorManagerProps) {
+export function CollaboratorManager({ databaseId, isOpen, onClose, onCollaboratorChange, refetchTrigger }: CollaboratorManagerProps) {
   const { inviteCollaborator, getCollaborators, removeCollaborator, getPendingInvitations } = useDatabases();
   const [collaborators, setCollaborators] = useState<DatabaseCollaborator[]>([]);
   const [pendingInvitations, setPendingInvitations] = useState<DatabaseInvitation[]>([]);
@@ -26,7 +27,7 @@ export function CollaboratorManager({ databaseId, isOpen, onClose, onCollaborato
     if (isOpen && databaseId) {
       loadData();
     }
-  }, [isOpen, databaseId]);
+  }, [isOpen, databaseId, refetchTrigger]); // Aggiungi refetchTrigger alle dipendenze
 
   const loadData = async () => {
     setLoading(true);
@@ -45,7 +46,7 @@ export function CollaboratorManager({ databaseId, isOpen, onClose, onCollaborato
     const result = await inviteCollaborator(databaseId, inviteEmail);
     if (result) {
       setInviteEmail('');
-      loadData();
+      loadData(); // Ricarica i dati dopo l'invito
     }
   };
 
@@ -53,8 +54,8 @@ export function CollaboratorManager({ databaseId, isOpen, onClose, onCollaborato
     if (confirm('Sei sicuro di voler rimuovere questo collaboratore?')) {
       const success = await removeCollaborator(collaboratorId);
       if (success) {
-        loadData();
-        onCollaboratorChange?.();
+        loadData(); // Ricarica i dati dopo la rimozione
+        onCollaboratorChange?.(); // Notifica il genitore (DatabaseManager) di ricaricare le sue liste
       }
     }
   };

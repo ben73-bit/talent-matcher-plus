@@ -309,6 +309,8 @@ export function useDatabases() {
         });
 
         // Trigger a broadcast to notify the database owner
+        // This broadcast is now redundant if the owner also has a real-time subscription
+        // but it doesn't hurt to keep it for other potential listeners.
         await supabase
           .channel('database_updates')
           .send({
@@ -355,7 +357,42 @@ export function useDatabases() {
 
   useEffect(() => {
     fetchDatabases();
-  }, [user]);
+
+    // Real-time subscription for database collaborators
+    // This ensures the owner's view is updated when a collaborator accepts an invitation
+    const channel = supabase
+      .channel('database_collaborators_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT', // Listen for new collaborators being added
+          schema: 'public',
+          table: 'database_collaborators',
+        },
+        (payload) => {
+          console.log('Realtime update: new collaborator added', payload);
+          // Refetch all databases to update the owner's view
+          fetchDatabases();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE', // Listen for collaborators being removed
+          schema: 'public',
+          table: 'database_collaborators',
+        },
+        (payload) => {
+          console.log('Realtime update: collaborator removed', payload);
+          fetchDatabases();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]); // Re-subscribe if user changes
 
   return {
     ownDatabases,
