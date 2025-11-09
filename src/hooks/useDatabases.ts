@@ -219,6 +219,7 @@ export function useDatabases() {
   };
 
   const getCollaborators = async (databaseId: string): Promise<DatabaseCollaborator[]> => {
+    console.log(`[useDatabases] Fetching collaborators for databaseId: ${databaseId}`);
     try {
       const { data, error } = await supabase
         .from('database_collaborators')
@@ -233,17 +234,19 @@ export function useDatabases() {
         .eq('database_id', databaseId);
 
       if (error) {
-        console.error('Supabase error fetching collaborators:', error);
+        console.error('[useDatabases] Supabase error fetching collaborators:', error);
         throw error;
       }
-      console.log('Raw collaborators data for databaseId', databaseId, ':', data);
+      console.log('[useDatabases] Raw collaborators data for databaseId', databaseId, ':', data);
 
-      return (data || []).map((item: any) => ({
+      const collaboratorsWithProfiles = (data || []).map((item: any) => ({
         ...item,
         profile: item.profiles
       })) as DatabaseCollaborator[];
+      console.log('[useDatabases] Mapped collaborators:', collaboratorsWithProfiles);
+      return collaboratorsWithProfiles;
     } catch (error) {
-      console.error('Error fetching collaborators:', error);
+      console.error('[useDatabases] Error fetching collaborators:', error);
       return [];
     }
   };
@@ -275,6 +278,7 @@ export function useDatabases() {
   };
 
   const getPendingInvitations = async (databaseId: string): Promise<DatabaseInvitation[]> => {
+    console.log(`[useDatabases] Fetching pending invitations for databaseId: ${databaseId}`);
     try {
       const { data, error } = await supabase
         .from('database_invitations')
@@ -283,11 +287,15 @@ export function useDatabases() {
         .is('accepted_at', null)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useDatabases] Supabase error fetching pending invitations:', error);
+        throw error;
+      }
+      console.log('[useDatabases] Raw pending invitations data for databaseId', databaseId, ':', data);
 
       return (data || []) as DatabaseInvitation[];
     } catch (error) {
-      console.error('Error fetching invitations:', error);
+      console.error('[useDatabases] Error fetching invitations:', error);
       return [];
     }
   };

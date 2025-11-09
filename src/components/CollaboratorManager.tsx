@@ -24,17 +24,25 @@ export function CollaboratorManager({ databaseId, isOpen, onClose, onCollaborato
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    console.log(`[CollaboratorManager] useEffect triggered. isOpen: ${isOpen}, databaseId: ${databaseId}, refetchTrigger: ${refetchTrigger}`);
     if (isOpen && databaseId) {
       loadData();
+    } else if (!isOpen) {
+      // Clear data when dialog closes
+      setCollaborators([]);
+      setPendingInvitations([]);
     }
   }, [isOpen, databaseId, refetchTrigger]); // Aggiungi refetchTrigger alle dipendenze
 
   const loadData = async () => {
+    console.log(`[CollaboratorManager] Loading data for databaseId: ${databaseId}`);
     setLoading(true);
     const [collabs, invites] = await Promise.all([
       getCollaborators(databaseId),
       getPendingInvitations(databaseId)
     ]);
+    console.log('[CollaboratorManager] Fetched collaborators:', collabs);
+    console.log('[CollaboratorManager] Fetched pending invitations:', invites);
     setCollaborators(collabs);
     setPendingInvitations(invites);
     setLoading(false);
@@ -43,19 +51,23 @@ export function CollaboratorManager({ databaseId, isOpen, onClose, onCollaborato
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
 
+    console.log(`[CollaboratorManager] Inviting ${inviteEmail} to database ${databaseId}`);
     const result = await inviteCollaborator(databaseId, inviteEmail);
     if (result) {
       setInviteEmail('');
       loadData(); // Ricarica i dati dopo l'invito
+      console.log('[CollaboratorManager] Invitation sent, reloading data.');
     }
   };
 
   const handleRemoveCollaborator = async (collaboratorId: string) => {
     if (confirm('Sei sicuro di voler rimuovere questo collaboratore?')) {
+      console.log(`[CollaboratorManager] Removing collaborator ${collaboratorId} from database ${databaseId}`);
       const success = await removeCollaborator(collaboratorId);
       if (success) {
         loadData(); // Ricarica i dati dopo la rimozione
         onCollaboratorChange?.(); // Notifica il genitore (DatabaseManager) di ricaricare le sue liste
+        console.log('[CollaboratorManager] Collaborator removed, reloading data and notifying parent.');
       }
     }
   };
