@@ -21,7 +21,7 @@ export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
   const [newDatabaseName, setNewDatabaseName] = useState('');
   const [newDatabaseDescription, setNewDatabaseDescription] = useState('');
   const [candidateCounts, setCandidateCounts] = useState<Record<string, number>>({});
-  const [collaboratorRefetchTrigger, setCollaboratorRefetchTrigger] = useState(0); // Nuovo stato per attivare il refetch
+  const [collaboratorManagerKey, setCollaboratorManagerKey] = useState(0); // Nuovo stato per forzare il remount
 
   const handleCreateDatabase = async () => {
     if (!newDatabaseName.trim()) return;
@@ -58,10 +58,15 @@ export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
     }
   }, [ownDatabases, sharedDatabases, loading]);
 
+  // Incrementa la chiave quando ownDatabases cambia per forzare il remount di CollaboratorManager
+  useEffect(() => {
+    setCollaboratorManagerKey(prev => prev + 1);
+  }, [ownDatabases]);
+
   // Funzione per gestire il cambiamento dei collaboratori e attivare il refetch
   const handleCollaboratorChange = () => {
     refetch(); // Chiama il refetch principale da useDatabases
-    setCollaboratorRefetchTrigger(prev => prev + 1); // Incrementa per attivare l'useEffect di CollaboratorManager
+    setCollaboratorManagerKey(prev => prev + 1); // Incrementa per attivare il remount di CollaboratorManager
   };
 
   if (loading) {
@@ -240,11 +245,12 @@ export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
       {/* Collaborator Manager Dialog */}
       {selectedDatabase && (
         <CollaboratorManager
+          key={collaboratorManagerKey} {/* Usa la chiave per forzare il remount */}
           databaseId={selectedDatabase}
           isOpen={!!selectedDatabase}
           onClose={() => setSelectedDatabase(null)}
-          onCollaboratorChange={handleCollaboratorChange} // Usa il nuovo handler
-          refetchTrigger={collaboratorRefetchTrigger} // Passa il trigger
+          onCollaboratorChange={handleCollaboratorChange}
+          // refetchTrigger={collaboratorRefetchTrigger} // Non più necessario con la chiave
         />
       )}
     </div>

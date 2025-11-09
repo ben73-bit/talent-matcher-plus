@@ -1,71 +1,46 @@
--- Drop existing policies for database_collaborators to avoid conflicts
-DROP POLICY IF EXISTS "Owners can view all collaborators for their databases" ON public.database_collaborators;
-DROP POLICY IF EXISTS "Collaborators can view their own entry" ON public.database_collaborators;
+-- Drop all existing policies on profiles to ensure a clean slate
+DROP POLICY IF EXISTS "Allow self view profile" ON public.profiles;
+DROP POLICY IF EXISTS "Allow owner to view collaborator profiles in owned databases" ON public.profiles;
+DROP POLICY IF EXISTS "Allow collaborators to view shared database collaborators' profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Allow authenticated users to view their own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Allow viewing profiles of collaborators in shared databases" ON public.profiles;
+DROP POLICY IF EXISTS "Enable read access for own profile and relevant collaborators" ON public.profiles;
 
--- Enable RLS for database_collaborators if not already enabled
-ALTER TABLE public.database_collaborators ENABLE ROW LEVEL SECURITY;
-
--- Create a single, comprehensive policy for SELECT on database_collaborators
--- This policy allows:
--- 1. A collaborator to see their own entry (e.g., to list shared databases they are part of).
--- 2. The owner of a database to see all collaborators associated with that database.
-CREATE POLICY "Enable read access for database owners and self"
-ON public.database_collaborators
-FOR SELECT
-TO authenticated
-USING (
-  user_id = auth.uid() OR -- Allow a collaborator to see their own entry
-  EXISTS (
-    SELECT 1
-    FROM public.databases
-    WHERE databases.id = database_collaborators.database_id
-      AND databases.user_id = auth.uid() -- Allow the owner of the database to see all collaborators for that database
-  )
-);
-
--- Drop existing policy for profiles to avoid conflicts
-DROP POLICY IF EXISTS "Allow authenticated users to view profiles" ON public.profiles;
 
 -- Enable RLS for profiles if not already enabled
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Policy 1: Allow users to view their own profile
-CREATE POLICY "Allow users to view their own profile"
-ON public.profiles
-FOR SELECT
-TO authenticated
-USING (user_id = auth.uid());
-
--- Policy 2: Allow users to view profiles of collaborators in shared databases
--- This policy ensures that:
--- - A user can see the profile of the owner of a database they collaborate in.
--- - A user can see the profiles of other collaborators in a database they also collaborate in.
--- - An owner can see the profiles of all collaborators in their databases.
-CREATE POLICY "Allow viewing profiles of collaborators in shared databases"
+-- Comprehensive policy for SELECT on profiles
+-- This policy allows:
+-- 1. A user to view their own profile.
+-- 2. A database owner to view profiles of all collaborators in their owned databases.
+-- 3. A collaborator to view profiles of other collaborators in databases they share.
+CREATE POLICY "Enable read access for own profile and relevant collaborators"
 ON public.profiles
 FOR SELECT
 TO authenticated
 USING (
-  EXISTS (
+  user_id = auth.uid() -- User can always see their own profile
+  OR EXISTS (
+    -- Case 1: Current user is an owner of a database, and the profile belongs to a collaborator in that database
     SELECT 1
-    FROM public.database_collaborators dc1
-    WHERE dc1.user_id = auth.uid() -- Current user is a collaborator in dc1.database_id
-      AND EXISTS (
-        SELECT 1
-        FROM public.database_collaborators dc2
-        WHERE dc2.database_id = dc1.database_id -- dc2 is in the same database
-          AND dc2.user_id = profiles.user_id -- The profile belongs to dc2's user
+    FROM public.databases db
+    WHERE db.user_id = auth.uid()
+      AND profiles.user_id IN (
+        SELECT dc.user_id
+        FROM public.database_collaborators dc
+        WHERE dc.database_id = db.id
       )
   )
   OR EXISTS (
+    -- Case 2: Current user is a collaborator in a database, and the profile belongs to another collaborator in the same database
     SELECT 1
-    FROM public.databases db
-    WHERE db.user_id = auth.uid() -- Current user owns db.id
-      AND EXISTS (
-        SELECT 1
-        FROM public.database_collaborators dc
-        WHERE dc.database_id = db.id -- dc is in the owner's database
-          AND dc.user_id = profiles.user_id -- The profile belongs to dc's user
+    FROM public.database_collaborators dc_current
+    WHERE dc_current.user_id = auth.uid()
+      AND profiles.user_id IN (
+        SELECT dc_other.user_id
+        FROM public.database_collaborators dc_other
+        WHERE dc_other.database_id = dc_current.database_id
       )
   )
 );
