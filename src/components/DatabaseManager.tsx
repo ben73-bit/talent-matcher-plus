@@ -244,13 +244,13 @@ export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
 
       {/* Collaborator Manager Dialog */}
       {selectedDatabase && (
+        // Usa la chiave per forzare il remount
         <CollaboratorManager
-          key={collaboratorManagerKey} {/* Usa la chiave per forzare il remount */}
+          key={collaboratorManagerKey}
           databaseId={selectedDatabase}
           isOpen={!!selectedDatabase}
           onClose={() => setSelectedDatabase(null)}
           onCollaboratorChange={handleCollaboratorChange}
-          // refetchTrigger={collaboratorRefetchTrigger} // Non più necessario con la chiave
         />
       )}
     </div>
