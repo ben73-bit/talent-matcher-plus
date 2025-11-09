@@ -232,7 +232,11 @@ export function useDatabases() {
         `)
         .eq('database_id', databaseId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching collaborators:', error);
+        throw error;
+      }
+      console.log('Raw collaborators data for databaseId', databaseId, ':', data);
 
       return (data || []).map((item: any) => ({
         ...item,
