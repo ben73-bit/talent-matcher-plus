@@ -251,6 +251,7 @@ export function DatabaseManager({ onViewCandidates }: DatabaseManagerProps) {
           isOpen={!!selectedDatabase}
           onClose={() => setSelectedDatabase(null)}
           onCollaboratorChange={handleCollaboratorChange}
+          refetchTrigger={collaboratorManagerKey}
         />
       )}
     </div>
