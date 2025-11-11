@@ -8,7 +8,8 @@ import {
   Phone,
   MapPin,
   Eye,
-  GripVertical
+  GripVertical,
+  Upload
 } from "lucide-react";
 import { motion, Reorder, useDragControls } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ import { useCandidates, Candidate } from "@/hooks/useCandidates";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { EmailModal } from "./EmailModal";
+import { ImportCandidatesDialog } from "./ImportCandidatesDialog"; // Importa il nuovo componente
 
 const getStatusBadge = (status: Candidate['status']) => {
   const statusMap = {
@@ -253,6 +255,7 @@ export const CandidateList = ({ onViewCandidate, filterDatabaseId, onClearFilter
   const [orderedCandidates, setOrderedCandidates] = useState<Candidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false); // Nuovo stato per il dialog di importazione
 
   useEffect(() => {
     setOrderedCandidates(candidates);
@@ -269,22 +272,27 @@ export const CandidateList = ({ onViewCandidate, filterDatabaseId, onClearFilter
 
   const handleExport = () => {
     const csvContent = [
-      ['Nome', 'Email', 'Telefono', 'Posizione', 'Status', 'Data'],
+      ['first_name', 'last_name', 'email', 'phone', 'position', 'company', 'experience_years', 'skills', 'notes', 'status', 'created_at'],
       ...candidates.map(c => [
-        `${c.first_name} ${c.last_name}`,
+        c.first_name,
+        c.last_name,
         c.email,
         c.phone || '',
         c.position || '',
+        c.company || '',
+        c.experience_years || '',
+        (c.skills || []).join(';'), // Usa ; come separatore per gli array
+        c.notes || '',
         c.status,
-        new Date(c.created_at).toLocaleDateString()
+        new Date(c.created_at).toISOString()
       ])
-    ].map(row => row.join(',')).join('\n');
+    ].map(row => row.map(item => `"${item}"`).join(',')).join('\n'); // Aggiunge virgolette per gestire i campi con virgole
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `candidati_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `candidati_esportazione_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
 
@@ -352,6 +360,10 @@ export const CandidateList = ({ onViewCandidate, filterDatabaseId, onClearFilter
           )}
         </div>
         <div className="flex items-center space-x-2">
+          <Button variant="outline" onClick={() => setShowImportDialog(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Importa CSV
+          </Button>
           <Button variant="outline" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             Esporta
@@ -498,6 +510,11 @@ export const CandidateList = ({ onViewCandidate, filterDatabaseId, onClearFilter
         onOpenChange={setShowEmailModal}
         candidate={selectedCandidate}
         emailService={profile?.email_service || 'outlook'}
+      />
+
+      <ImportCandidatesDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
       />
     </motion.div>
   );
