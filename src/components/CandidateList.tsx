@@ -251,8 +251,10 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
     .sort((a, b) => {
       switch (sortBy) {
         case 'name':
-          // Ordine alfabetico (A-Z)
-          return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
+          // Ordine alfabetico per cognome, poi nome
+          const nameA = `${a.last_name} ${a.first_name}`;
+          const nameB = `${b.last_name} ${b.first_name}`;
+          return nameA.localeCompare(nameB);
         case 'recent':
         default:
           // Più recenti (Z-A)
