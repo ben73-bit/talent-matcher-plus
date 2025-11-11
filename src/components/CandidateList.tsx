@@ -9,7 +9,10 @@ import {
   MapPin,
   Eye,
   GripVertical,
-  Upload
+  Upload,
+  Briefcase,
+  Calendar,
+  Hash
 } from "lucide-react";
 import { motion, Reorder, useDragControls } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -34,27 +37,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useCandidates, Candidate } from "@/hooks/useCandidates";
-import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { EmailModal } from "./EmailModal";
-import { ImportCandidatesDialog } from "./ImportCandidatesDialog"; // Importa il nuovo componente
+import { ImportCandidatesDialog } from "./ImportCandidatesDialog";
 
 const getStatusBadge = (status: Candidate['status']) => {
   const statusMap = {
-    new: { label: 'Nuovo', variant: 'secondary' as const },
-    contacted: { label: 'Contattato', variant: 'default' as const },
-    interviewed: { label: 'Colloquio', variant: 'outline' as const },
-    hired: { label: 'Assunto', variant: 'default' as const },
-    rejected: { label: 'Scartato', variant: 'destructive' as const }
+    new: { label: 'Nuovo', variant: 'secondary' as const, className: 'bg-secondary text-secondary-foreground' },
+    contacted: { label: 'Contattato', variant: 'default' as const, className: 'bg-warning text-warning-foreground hover:bg-warning/80' },
+    interviewed: { label: 'Colloquio', variant: 'outline' as const, className: 'border-primary text-primary' },
+    hired: { label: 'Assunto', variant: 'default' as const, className: 'bg-success text-success-foreground hover:bg-success/80' },
+    rejected: { label: 'Scartato', variant: 'destructive' as const, className: 'bg-destructive text-destructive-foreground hover:bg-destructive/80' }
   };
 
   const config = statusMap[status];
   return (
-    <Badge variant={config.variant} className={
-      status === 'hired' ? 'bg-success text-success-foreground' :
-      status === 'contacted' ? 'bg-warning text-warning-foreground' : ''
-    }>
+    <Badge variant={config.variant} className={config.className}>
       {config.label}
     </Badge>
   );
@@ -67,11 +74,14 @@ interface CandidateItemProps {
   updateCandidate: (id: string, updates: any) => void;
   emailService: string;
   onEmailClick: (candidate: Candidate) => void;
+  index: number;
 }
 
-const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCandidate, emailService, onEmailClick }: CandidateItemProps) => {
+const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCandidate, emailService, onEmailClick, index }: CandidateItemProps) => {
   const dragControls = useDragControls();
   const [isDragging, setIsDragging] = useState(false);
+
+  const initials = `${candidate.first_name[0]}${candidate.last_name[0]}`.toUpperCase();
 
   return (
     <Reorder.Item
@@ -79,160 +89,130 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
       dragListener={false}
       dragControls={dragControls}
       as="div"
-      className="mb-4"
+      className="contents"
       onDragStart={() => setIsDragging(true)}
       onDragEnd={() => setTimeout(() => setIsDragging(false), 100)}
     >
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, x: -100 }}
         transition={{ duration: 0.2 }}
+        className="contents"
       >
-        <Card
-          className="bg-gradient-card border-0 shadow-soft hover:shadow-medium transition-smooth cursor-pointer group"
+        <TableRow 
+          className="cursor-pointer hover:bg-secondary/50 transition-colors"
           onClick={() => {
             if (!isDragging) {
               onViewCandidate?.(candidate.id);
             }
           }}
         >
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start space-x-4 flex-1">
-                <div
-                  className="cursor-grab active:cursor-grabbing pt-1"
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    dragControls.start(e);
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <GripVertical className="h-5 w-5 text-muted-foreground" />
-                </div>
-
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={candidate.photo_url || undefined} alt={`${candidate.first_name} ${candidate.last_name}`} />
-                  <AvatarFallback className="bg-gradient-primary text-primary-foreground font-medium text-lg">
-                    {candidate.first_name[0]}{candidate.last_name[0]}
-                  </AvatarFallback>
-                </Avatar>
-
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center space-x-3">
-                    <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-fast">
-                      {candidate.first_name} {candidate.last_name}
-                    </h3>
-                  </div>
-
-                  <p className="text-primary font-medium">{candidate.position || 'Posizione non specificata'}</p>
-
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                    <div className="flex items-center">
-                      <Mail className="mr-1 h-3 w-3" />
-                      {candidate.email}
-                    </div>
-                    {candidate.phone && (
-                      <div className="flex items-center">
-                        <Phone className="mr-1 h-3 w-3" />
-                        {candidate.phone}
-                      </div>
-                    )}
-                    {candidate.company && (
-                      <div className="flex items-center">
-                        <MapPin className="mr-1 h-3 w-3" />
-                        {candidate.company}
-                      </div>
-                    )}
-                  </div>
-
-                  {candidate.skills && candidate.skills.length > 0 && (
-                    <div className="flex items-center space-x-2 mt-3">
-                      <span className="text-sm text-muted-foreground">Competenze:</span>
-                      <div className="flex flex-wrap gap-1">
-                        {candidate.skills.slice(0, 4).map((skill, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {skill}
-                          </Badge>
-                        ))}
-                        {candidate.skills.length > 4 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{candidate.skills.length - 4}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <div className="text-right space-y-2">
-                  {getStatusBadge(candidate.status)}
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(candidate.created_at).toLocaleDateString('it-IT')}
-                  </div>
-                </div>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onViewCandidate?.(candidate.id);
-                      }}
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      Visualizza
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEmailClick(candidate);
-                      }}
-                    >
-                      <Mail className="mr-2 h-4 w-4" />
-                      Invia Email
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'contacted' })}>
-                      Segna come Contattato
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'interviewed' })}>
-                      Segna come Intervistato
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'hired' })}>
-                      Segna come Assunto
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'rejected' })}>
-                      Segna come Scartato
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => {
-                        if (confirm('Sei sicuro di voler eliminare questo candidato?')) {
-                          deleteCandidate(candidate.id);
-                        }
-                      }}
-                    >
-                      Elimina
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+          <TableCell className="w-10 p-0">
+            <div
+              className="cursor-grab active:cursor-grabbing h-full flex items-center justify-center px-2"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                dragControls.start(e);
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </TableCell>
+          <TableCell className="font-medium w-1/4">
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={candidate.photo_url || undefined} alt={initials} />
+                <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium">{candidate.first_name} {candidate.last_name}</p>
+                <p className="text-xs text-muted-foreground">{candidate.email}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </TableCell>
+          <TableCell className="w-1/5 hidden sm:table-cell">
+            <div className="text-sm">{candidate.position || 'N/D'}</div>
+            <div className="text-xs text-muted-foreground">{candidate.company || 'N/D'}</div>
+          </TableCell>
+          <TableCell className="w-1/5 hidden lg:table-cell">
+            <div className="flex flex-wrap gap-1">
+              {(candidate.skills || []).slice(0, 3).map((skill, index) => (
+                <Badge key={index} variant="secondary" className="text-xs px-2 py-0.5">
+                  {skill}
+                </Badge>
+              ))}
+              {(candidate.skills || []).length > 3 && (
+                <Badge variant="outline" className="text-xs px-2 py-0.5">
+                  +{(candidate.skills || []).length - 3}
+                </Badge>
+              )}
+            </div>
+          </TableCell>
+          <TableCell className="w-1/6">
+            {getStatusBadge(candidate.status)}
+          </TableCell>
+          <TableCell className="w-1/12 text-right">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewCandidate?.(candidate.id);
+                  }}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  Visualizza Dettagli
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEmailClick(candidate);
+                  }}
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  Invia Email
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'contacted' })}>
+                  Segna come Contattato
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'interviewed' })}>
+                  Segna come Intervistato
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'hired' })}>
+                  Segna come Assunto
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'rejected' })}>
+                  Segna come Scartato
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => {
+                    if (confirm('Sei sicuro di voler eliminare questo candidato?')) {
+                      deleteCandidate(candidate.id);
+                    }
+                  }}
+                >
+                  Elimina
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TableCell>
+        </TableRow>
       </motion.div>
     </Reorder.Item>
   );
@@ -240,8 +220,6 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
 
 interface CandidateListProps {
   onViewCandidate?: (candidateId: string) => void;
-  // filterDatabaseId?: string | null; // Rimosso
-  // onClearFilter?: () => void; // Rimosso
 }
 
 export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
@@ -255,13 +233,12 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
   const [orderedCandidates, setOrderedCandidates] = useState<Candidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [showImportDialog, setShowImportDialog] = useState(false); // Nuovo stato per il dialog di importazione
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   useEffect(() => {
     setOrderedCandidates(candidates);
   }, [candidates]);
 
-  // Ricarica i candidati (ora sempre tutti, senza filtro database)
   useEffect(() => {
     fetchByDatabase();
   }, []);
@@ -314,7 +291,6 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
                            position.includes(searchTerm.toLowerCase()) ||
                            skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesStatus = statusFilter === "all" || candidate.status === statusFilter;
-      // const matchesDatabase = !filterDatabaseId || candidate.database_id === filterDatabaseId; // Rimosso
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -348,12 +324,6 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
           <p className="text-muted-foreground">
             Gestisci e visualizza tutti i candidati ({filteredCandidates.length})
           </p>
-          {/* Rimosso: Clear Filter Button */}
-          {/* {filterDatabaseId && onClearFilter && (
-            <Button variant="link" onClick={onClearFilter} className="p-0 h-auto text-sm">
-              Visualizza tutti i candidati
-            </Button>
-          )} */}
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" onClick={() => setShowImportDialog(true)}>
@@ -434,27 +404,42 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
       )}
 
       {!loading && filteredCandidates.length > 0 && (
-        <Reorder.Group
-          axis="y"
-          values={filteredCandidates}
-          onReorder={handleReorder}
-          className="space-y-0"
-        >
-          {filteredCandidates.map((candidate) => (
-            <CandidateItem
-              key={candidate.id}
-              candidate={candidate}
-              onViewCandidate={onViewCandidate}
-              deleteCandidate={deleteCandidate}
-              updateCandidate={updateCandidate}
-              emailService={profile?.email_service || 'outlook'}
-              onEmailClick={(candidate) => {
-                setSelectedCandidate(candidate);
-                setShowEmailModal(true);
-              }}
-            />
-          ))}
-        </Reorder.Group>
+        <Card className="shadow-soft border-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-secondary/50 hover:bg-secondary/50">
+                <TableHead className="w-10"></TableHead> {/* Drag Handle */}
+                <TableHead className="w-1/4">Candidato</TableHead>
+                <TableHead className="w-1/5 hidden sm:table-cell">Posizione/Azienda</TableHead>
+                <TableHead className="w-1/5 hidden lg:table-cell">Competenze</TableHead>
+                <TableHead className="w-1/6">Stato</TableHead>
+                <TableHead className="w-1/12 text-right">Azioni</TableHead>
+              </TableRow>
+            </TableHeader>
+            <Reorder.Group
+              axis="y"
+              values={filteredCandidates}
+              onReorder={handleReorder}
+              as={TableBody}
+            >
+              {filteredCandidates.map((candidate, index) => (
+                <CandidateItem
+                  key={candidate.id}
+                  candidate={candidate}
+                  onViewCandidate={onViewCandidate}
+                  deleteCandidate={deleteCandidate}
+                  updateCandidate={updateCandidate}
+                  emailService={profile?.email_service || 'outlook'}
+                  onEmailClick={(candidate) => {
+                    setSelectedCandidate(candidate);
+                    setShowEmailModal(true);
+                  }}
+                  index={index}
+                />
+              ))}
+            </Reorder.Group>
+          </Table>
+        </Card>
       )}
 
       <Dialog open={showAdvancedFilters} onOpenChange={setShowAdvancedFilters}>

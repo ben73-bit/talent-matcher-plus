@@ -6,7 +6,9 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Mail,
+  MapPin
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +28,8 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
 
   const stats = getStats();
 
-  const recentCandidates = candidates.slice(0, 4);
+  // Ridotto a 3 candidati recenti per densità
+  const recentCandidates = candidates.slice(0, 3);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -152,7 +155,7 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
               </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {recentCandidates.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 Nessun candidato ancora. Aggiungi il tuo primo candidato!
@@ -161,31 +164,32 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
               recentCandidates.map((candidate, index) => (
                 <motion.div
                   key={candidate.id}
-                  className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-fast"
+                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-fast"
                   initial={{ x: -20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ delay: 0.7 + index * 0.1 }}
                   whileHover={{ x: 5 }}
                 >
-                  <div className="flex items-center space-x-4">
-                    <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-medium">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-medium text-sm shrink-0">
                       {candidate.first_name[0]}{candidate.last_name[0]}
                     </div>
                     <div>
-                      <h4 className="font-medium text-foreground">{candidate.first_name} {candidate.last_name}</h4>
-                      <p className="text-sm text-muted-foreground">{candidate.position || 'Posizione non specificata'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(candidate.status)}
-                        <span className="text-sm font-medium">{getStatusLabel(candidate.status)}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(candidate.created_at).toLocaleDateString('it-IT')}
+                      <h4 className="font-medium text-foreground text-sm">{candidate.first_name} {candidate.last_name}</h4>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Briefcase className="h-3 w-3" />
+                        {candidate.position || 'N/D'}
                       </p>
                     </div>
+                  </div>
+                  <div className="flex flex-col items-end space-y-1 shrink-0">
+                    <div className="flex items-center space-x-1">
+                      {getStatusIcon(candidate.status)}
+                      <span className="text-xs font-medium">{getStatusLabel(candidate.status)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(candidate.created_at).toLocaleDateString('it-IT')}
+                    </p>
                   </div>
                 </motion.div>
               ))
