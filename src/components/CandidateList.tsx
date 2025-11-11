@@ -49,6 +49,7 @@ import { useCandidates, Candidate } from "@/hooks/useCandidates";
 import { useProfile } from "@/hooks/useProfile";
 import { EmailModal } from "./EmailModal";
 import { ImportCandidatesDialog } from "./ImportCandidatesDialog";
+import { cn } from "@/lib/utils"; // Import cn utility
 
 const getStatusBadge = (status: Candidate['status']) => {
   const statusMap = {
@@ -67,8 +68,8 @@ const getStatusBadge = (status: Candidate['status']) => {
   );
 };
 
-// Creiamo un componente motion per TableRow per poter applicare le proprietà di framer-motion
-const MotionTableRow = motion(TableRow);
+// Rimuoviamo MotionTableRow non necessario
+// const MotionTableRow = motion(TableRow);
 
 interface CandidateItemProps {
   candidate: Candidate;
@@ -91,11 +92,15 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
       value={candidate}
       dragListener={false}
       dragControls={dragControls}
-      as={MotionTableRow} // Utilizza MotionTableRow per mantenere la struttura <tr> e le animazioni
-      className="cursor-pointer hover:bg-secondary/50 transition-colors"
+      as="tr" // Forza il rendering come <tr>
+      className={cn(
+        "border-b transition-colors cursor-pointer",
+        "hover:bg-secondary/50",
+        isDragging ? "bg-secondary/80 shadow-lg" : ""
+      )}
       onDragStart={() => setIsDragging(true)}
       onDragEnd={() => setTimeout(() => setIsDragging(false), 100)}
-      // Motion props
+      // Motion props applied directly to the <tr> element
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -100 }}
@@ -130,8 +135,7 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
             <p className="text-sm font-medium">{candidate.first_name} {candidate.last_name}</p>
             <p className="text-xs text-muted-foreground">{candidate.email}</p>
           </div>
-        </div>
-      </TableCell>
+        </TableCell>
       <TableCell className="w-1/5 hidden sm:table-cell">
         <div className="text-sm">{candidate.position || 'N/D'}</div>
         <div className="text-xs text-muted-foreground">{candidate.company || 'N/D'}</div>
