@@ -39,7 +39,6 @@ import {
 } from "@/components/ui/select";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useAuth } from "@/hooks/useAuth";
-import { useDatabases } from "@/hooks/useDatabases";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AddCandidateProps {
@@ -50,7 +49,6 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { createCandidate, candidates } = useCandidates();
-  const { ownDatabases } = useDatabases();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
@@ -72,7 +70,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
     experience: "",
     skills: [] as string[],
     notes: "",
-    databaseId: ""
+    // databaseId: "" Rimosso
   });
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +80,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
     if (!file.type.startsWith('image/')) {
       toast({
         title: "Errore",
-        description: "Per favore carica solo file immagine (JPG, PNG, WEBP)",
+        description: "Per favori carica solo file immagine (JPG, PNG, WEBP)",
         variant: "destructive",
       });
       return;
@@ -261,7 +259,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
         status: 'new',
         photo_url: photoUrl || undefined,
         cv_url: cvUrl || undefined,
-        database_id: formData.databaseId || undefined,
+        // database_id: formData.databaseId || undefined, Rimosso
       });
       
       if (candidate) {
@@ -276,7 +274,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
           experience: "",
           skills: [],
           notes: "",
-          databaseId: ""
+          // databaseId: "" Rimosso
         });
         setExtractedData(null);
         setUploadedPhoto(null);
@@ -587,7 +585,8 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
                 />
               </div>
 
-              <div className="space-y-2">
+              {/* Rimosso: Database Selection */}
+              {/* <div className="space-y-2">
                 <Label htmlFor="database">Database (Opzionale)</Label>
                 <Select 
                   value={formData.databaseId || "none"}
@@ -608,7 +607,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
                 <p className="text-xs text-muted-foreground">
                   Assegna il candidato a un database per condividerlo con i collaboratori
                 </p>
-              </div>
+              </div> */}
 
               <div className="flex justify-end space-x-4 pt-4">
                 <Button type="button" variant="outline" onClick={onBack}>

@@ -19,7 +19,7 @@ export interface Candidate {
   photo_url?: string;
   cv_url?: string;
   order_index?: number;
-  database_id?: string;
+  database_id?: string; // Mantenuto per compatibilità con la tabella DB, ma non usato nell'UI
   created_at: string;
   updated_at: string;
 }
@@ -37,7 +37,7 @@ export interface CreateCandidateData {
   status?: 'new' | 'contacted' | 'interviewed' | 'hired' | 'rejected';
   photo_url?: string;
   cv_url?: string;
-  database_id?: string;
+  // database_id?: string; Rimosso
 }
 
 export interface UpdateCandidateData {
@@ -53,7 +53,7 @@ export interface UpdateCandidateData {
   status?: 'new' | 'contacted' | 'interviewed' | 'hired' | 'rejected';
   photo_url?: string;
   cv_url?: string;
-  database_id?: string;
+  // database_id?: string; Rimosso
 }
 
 export function useCandidates() {
@@ -63,7 +63,7 @@ export function useCandidates() {
   const { toast } = useToast();
 
   // Fetch candidates
-  const fetchCandidates = async (databaseId?: string) => {
+  const fetchCandidates = async () => {
     if (!user) {
       setCandidates([]);
       setLoading(false);
@@ -72,17 +72,10 @@ export function useCandidates() {
 
     try {
       setLoading(true);
-      let query = supabase
+      // Ora recupera solo i candidati dell'utente corrente (RLS gestirà questo)
+      const { data, error } = await supabase
         .from('candidates')
-        .select('*');
-
-      // Se viene specificato un database_id, filtra per quello
-      // Altrimenti recupera tutti i candidati accessibili (RLS gestirà i permessi)
-      if (databaseId) {
-        query = query.eq('database_id', databaseId);
-      }
-
-      const { data, error } = await query
+        .select('*')
         .order('order_index', { ascending: true })
         .order('created_at', { ascending: false });
 
@@ -121,7 +114,8 @@ export function useCandidates() {
           {
             ...candidateData,
             user_id: user.id,
-            status: candidateData.status || 'new'
+            status: candidateData.status || 'new',
+            database_id: null, // Assicurati che sia sempre null
           }
         ])
         .select()
@@ -152,9 +146,11 @@ export function useCandidates() {
   // Update candidate
   const updateCandidate = async (id: string, updates: UpdateCandidateData) => {
     try {
+      const updatesWithNullDatabase = { ...updates, database_id: null }; // Assicurati che database_id non venga aggiornato o sia null
+      
       const { data, error } = await supabase
         .from('candidates')
-        .update(updates)
+        .update(updatesWithNullDatabase)
         .eq('id', id)
         .eq('user_id', user?.id)
         .select()
@@ -304,6 +300,6 @@ export function useCandidates() {
     updateCandidateOrder,
     reorderCandidates,
     refetch: fetchCandidates,
-    fetchByDatabase: fetchCandidates,
+    fetchByDatabase: fetchCandidates, // Mantenuto per non rompere l'interfaccia, ma ora ignora l'argomento
   };
 }

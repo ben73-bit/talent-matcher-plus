@@ -18,7 +18,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
-import { useDatabases } from "@/hooks/useDatabases";
 
 interface NavigationProps {
   onProfileClick?: () => void;
@@ -28,13 +27,15 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const { notifications, unreadCount, markAsRead } = useNotifications();
-  const { acceptInvitation } = useDatabases();
+  // Rimosso: const { acceptInvitation } = useDatabases();
   const [showNotifications, setShowNotifications] = useState(false);
 
   const handleMarkAsRead = async (id: string) => {
     await markAsRead(id);
   };
 
+  // Rimosso: handleAcceptInvitation
+  /*
   const handleAcceptInvitation = async (notificationId: string, invitationId: string) => {
     const success = await acceptInvitation(invitationId);
     if (success) {
@@ -42,6 +43,7 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
       setShowNotifications(false);
     }
   };
+  */
 
   const formatTime = (dateString: string) => {
     try {
@@ -173,7 +175,8 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
                     <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
                     <p className="text-xs text-muted-foreground mt-2">{formatTime(notification.created_at)}</p>
                     
-                    {notification.type === 'database_invitation' && notification.data?.invitation_id && !notification.read && (
+                    {/* Rimosso: Logica di accettazione invito */}
+                    {/* {notification.type === 'database_invitation' && notification.data?.invitation_id && !notification.read && (
                       <div className="flex gap-2 mt-3">
                         <Button
                           size="sm"
@@ -191,9 +194,9 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
                           Ignora
                         </Button>
                       </div>
-                    )}
+                    )} */}
                     
-                    {notification.read && (
+                    {!notification.read && (
                       <Button
                         variant="ghost"
                         size="sm"

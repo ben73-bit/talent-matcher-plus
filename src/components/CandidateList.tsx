@@ -240,11 +240,11 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
 
 interface CandidateListProps {
   onViewCandidate?: (candidateId: string) => void;
-  filterDatabaseId?: string | null;
-  onClearFilter?: () => void;
+  // filterDatabaseId?: string | null; // Rimosso
+  // onClearFilter?: () => void; // Rimosso
 }
 
-export const CandidateList = ({ onViewCandidate, filterDatabaseId, onClearFilter }: CandidateListProps) => {
+export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
   const { candidates, loading, deleteCandidate, updateCandidate, reorderCandidates, fetchByDatabase } = useCandidates();
   const { profile } = useProfile();
   const { toast } = useToast();
@@ -261,14 +261,10 @@ export const CandidateList = ({ onViewCandidate, filterDatabaseId, onClearFilter
     setOrderedCandidates(candidates);
   }, [candidates]);
 
-  // Ricarica i candidati quando cambia il database selezionato
+  // Ricarica i candidati (ora sempre tutti, senza filtro database)
   useEffect(() => {
-    if (filterDatabaseId) {
-      fetchByDatabase(filterDatabaseId);
-    } else {
-      fetchByDatabase();
-    }
-  }, [filterDatabaseId]);
+    fetchByDatabase();
+  }, []);
 
   const handleExport = () => {
     const csvContent = [
@@ -318,8 +314,8 @@ export const CandidateList = ({ onViewCandidate, filterDatabaseId, onClearFilter
                            position.includes(searchTerm.toLowerCase()) ||
                            skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesStatus = statusFilter === "all" || candidate.status === statusFilter;
-      const matchesDatabase = !filterDatabaseId || candidate.database_id === filterDatabaseId;
-      return matchesSearch && matchesStatus && matchesDatabase;
+      // const matchesDatabase = !filterDatabaseId || candidate.database_id === filterDatabaseId; // Rimosso
+      return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -351,13 +347,13 @@ export const CandidateList = ({ onViewCandidate, filterDatabaseId, onClearFilter
           <h1 className="text-3xl font-bold text-foreground">Candidati</h1>
           <p className="text-muted-foreground">
             Gestisci e visualizza tutti i candidati ({filteredCandidates.length})
-            {filterDatabaseId && ' - Database condiviso'}
           </p>
-          {filterDatabaseId && onClearFilter && (
+          {/* Rimosso: Clear Filter Button */}
+          {/* {filterDatabaseId && onClearFilter && (
             <Button variant="link" onClick={onClearFilter} className="p-0 h-auto text-sm">
               Visualizza tutti i candidati
             </Button>
-          )}
+          )} */}
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" onClick={() => setShowImportDialog(true)}>

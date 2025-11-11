@@ -28,7 +28,6 @@ import {
 } from "@/components/ui/select";
 import { useCandidates, Candidate } from "@/hooks/useCandidates";
 import { useAuth } from "@/hooks/useAuth";
-import { useDatabases } from "@/hooks/useDatabases";
 import { supabase } from "@/integrations/supabase/client";
 
 interface EditCandidateProps {
@@ -41,7 +40,6 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
   const { toast } = useToast();
   const { user } = useAuth();
   const { updateCandidate } = useCandidates();
-  const { ownDatabases } = useDatabases();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
@@ -60,7 +58,7 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
     experience: candidate.experience_years ? `${candidate.experience_years}+ anni` : "",
     skills: candidate.skills || [],
     notes: candidate.notes || "",
-    databaseId: candidate.database_id || ""
+    // databaseId: candidate.database_id || "" Rimosso
   });
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -219,7 +217,7 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
         notes: formData.notes,
         photo_url: photoUrl || undefined,
         cv_url: cvUrl || undefined,
-        database_id: formData.databaseId || undefined,
+        database_id: null, // Imposto a null per rimuovere l'associazione al database
       });
       
       toast({
@@ -525,7 +523,8 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
                 />
               </div>
 
-              <div className="space-y-2">
+              {/* Rimosso: Database Selection */}
+              {/* <div className="space-y-2">
                 <Label htmlFor="database">Database (Opzionale)</Label>
                 <Select 
                   value={formData.databaseId || "none"}
@@ -546,7 +545,7 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
                 <p className="text-xs text-muted-foreground">
                   Assegna il candidato a un database per condividerlo con i collaboratori
                 </p>
-              </div>
+              </div> */}
 
               <div className="flex gap-3 pt-4">
                 <Button

@@ -6,7 +6,6 @@ import { Dashboard } from "@/components/Dashboard";
 import { CandidateList } from "@/components/CandidateList";
 import { AddCandidate } from "@/components/AddCandidate";
 import { EditCandidate } from "@/components/EditCandidate";
-import { DatabaseManager } from "@/components/DatabaseManager";
 import { CandidateDetailsDialog } from "@/components/CandidateDetailsDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useCandidates } from "@/hooks/useCandidates";
@@ -21,7 +20,7 @@ const Index = () => {
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCandidateId, setEditingCandidateId] = useState<string | null>(null);
-  const [selectedDatabaseId, setSelectedDatabaseId] = useState<string | null>(null);
+  // const [selectedDatabaseId, setSelectedDatabaseId] = useState<string | null>(null); // Rimosso
 
   const handleViewCandidate = (candidateId: string) => {
     console.log('Viewing candidate:', candidateId);
@@ -110,23 +109,23 @@ const Index = () => {
     }
   };
 
-  const handleViewDatabaseCandidates = (databaseId: string) => {
-    setSelectedDatabaseId(databaseId);
-    setActiveTab("candidates");
-  };
+  // const handleViewDatabaseCandidates = (databaseId: string) => { // Rimosso
+  //   setSelectedDatabaseId(databaseId);
+  //   setActiveTab("candidates");
+  // };
 
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
         return <Dashboard onNavigate={setActiveTab} />;
-      case "databases":
-        return <DatabaseManager onViewCandidates={handleViewDatabaseCandidates} />;
+      // case "databases": // Rimosso
+      //   return <DatabaseManager onViewCandidates={handleViewDatabaseCandidates} />;
       case "candidates":
         return (
           <CandidateList 
             onViewCandidate={handleViewCandidate} 
-            filterDatabaseId={selectedDatabaseId}
-            onClearFilter={() => setSelectedDatabaseId(null)}
+            // filterDatabaseId={selectedDatabaseId} // Rimosso
+            // onClearFilter={() => setSelectedDatabaseId(null)} // Rimosso
           />
         );
       case "add-candidate":

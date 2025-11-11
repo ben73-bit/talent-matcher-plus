@@ -21,7 +21,7 @@ interface SidebarProps {
 export const Sidebar = ({ activeTab, onTabChange, candidatesCount = 0 }: SidebarProps) => {
   const navigation = [
     { id: 'dashboard', icon: Home, label: 'Dashboard', badge: null },
-    { id: 'databases', icon: Database, label: 'Database', badge: null },
+    // { id: 'databases', icon: Database, label: 'Database', badge: null }, // Rimosso
     { id: 'candidates', icon: Users, label: 'Candidati', badge: candidatesCount > 0 ? candidatesCount.toString() : null },
     { id: 'positions', icon: Briefcase, label: 'Posizioni', badge: '12' },
     { id: 'interviews', icon: Calendar, label: 'Colloqui', badge: '8' },
