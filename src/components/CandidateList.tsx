@@ -68,9 +68,6 @@ const getStatusBadge = (status: Candidate['status']) => {
   );
 };
 
-// Creiamo un componente motion per TableRow per poter applicare le proprietà di framer-motion
-const MotionTableRow = motion(TableRow);
-
 interface CandidateItemProps {
   candidate: Candidate;
   onViewCandidate?: (candidateId: string) => void;
@@ -92,7 +89,7 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
       value={candidate}
       dragListener={false}
       dragControls={dragControls}
-      as={MotionTableRow} // Utilizza MotionTableRow
+      as="tr" // Forza il rendering come <tr> nativo
       className={cn(
         "border-b transition-colors cursor-pointer",
         "hover:bg-secondary/50",
@@ -100,7 +97,7 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
       )}
       onDragStart={() => setIsDragging(true)}
       onDragEnd={() => setTimeout(() => setIsDragging(false), 100)}
-      // Motion props applied directly to the Reorder.Item (which renders MotionTableRow)
+      // Motion props applied internally by Reorder.Item
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -100 }}
