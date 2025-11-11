@@ -67,6 +67,9 @@ const getStatusBadge = (status: Candidate['status']) => {
   );
 };
 
+// Creiamo un componente motion per TableRow per poter applicare le proprietà di framer-motion
+const MotionTableRow = motion(TableRow);
+
 interface CandidateItemProps {
   candidate: Candidate;
   onViewCandidate?: (candidateId: string) => void;
@@ -88,132 +91,125 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
       value={candidate}
       dragListener={false}
       dragControls={dragControls}
-      as="div"
-      className="contents"
+      as={MotionTableRow} // Utilizza MotionTableRow per mantenere la struttura <tr> e le animazioni
+      className="cursor-pointer hover:bg-secondary/50 transition-colors"
       onDragStart={() => setIsDragging(true)}
       onDragEnd={() => setTimeout(() => setIsDragging(false), 100)}
+      // Motion props
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -100 }}
+      transition={{ duration: 0.2 }}
+      onClick={() => {
+        if (!isDragging) {
+          onViewCandidate?.(candidate.id);
+        }
+      }}
     >
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, x: -100 }}
-        transition={{ duration: 0.2 }}
-        className="contents"
-      >
-        <TableRow 
-          className="cursor-pointer hover:bg-secondary/50 transition-colors"
-          onClick={() => {
-            if (!isDragging) {
-              onViewCandidate?.(candidate.id);
-            }
+      <TableCell className="w-10 p-0">
+        <div
+          className="cursor-grab active:cursor-grabbing h-full flex items-center justify-center px-2"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            dragControls.start(e);
           }}
+          onClick={(e) => e.stopPropagation()}
         >
-          <TableCell className="w-10 p-0">
-            <div
-              className="cursor-grab active:cursor-grabbing h-full flex items-center justify-center px-2"
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                dragControls.start(e);
-              }}
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+      </TableCell>
+      <TableCell className="font-medium w-1/4">
+        <div className="flex items-center space-x-3">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={candidate.photo_url || undefined} alt={initials} />
+            <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="text-sm font-medium">{candidate.first_name} {candidate.last_name}</p>
+            <p className="text-xs text-muted-foreground">{candidate.email}</p>
+          </div>
+        </div>
+      </TableCell>
+      <TableCell className="w-1/5 hidden sm:table-cell">
+        <div className="text-sm">{candidate.position || 'N/D'}</div>
+        <div className="text-xs text-muted-foreground">{candidate.company || 'N/D'}</div>
+      </TableCell>
+      <TableCell className="w-1/5 hidden lg:table-cell">
+        <div className="flex flex-wrap gap-1">
+          {(candidate.skills || []).slice(0, 3).map((skill, index) => (
+            <Badge key={index} variant="secondary" className="text-xs px-2 py-0.5">
+              {skill}
+            </Badge>
+          ))}
+          {(candidate.skills || []).length > 3 && (
+            <Badge variant="outline" className="text-xs px-2 py-0.5">
+              +{(candidate.skills || []).length - 3}
+            </Badge>
+          )}
+        </div>
+      </TableCell>
+      <TableCell className="w-1/6">
+        {getStatusBadge(candidate.status)}
+      </TableCell>
+      <TableCell className="w-1/12 text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={(e) => e.stopPropagation()}
             >
-              <GripVertical className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </TableCell>
-          <TableCell className="font-medium w-1/4">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={candidate.photo_url || undefined} alt={initials} />
-                <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-sm font-medium">{candidate.first_name} {candidate.last_name}</p>
-                <p className="text-xs text-muted-foreground">{candidate.email}</p>
-              </div>
-            </div>
-          </TableCell>
-          <TableCell className="w-1/5 hidden sm:table-cell">
-            <div className="text-sm">{candidate.position || 'N/D'}</div>
-            <div className="text-xs text-muted-foreground">{candidate.company || 'N/D'}</div>
-          </TableCell>
-          <TableCell className="w-1/5 hidden lg:table-cell">
-            <div className="flex flex-wrap gap-1">
-              {(candidate.skills || []).slice(0, 3).map((skill, index) => (
-                <Badge key={index} variant="secondary" className="text-xs px-2 py-0.5">
-                  {skill}
-                </Badge>
-              ))}
-              {(candidate.skills || []).length > 3 && (
-                <Badge variant="outline" className="text-xs px-2 py-0.5">
-                  +{(candidate.skills || []).length - 3}
-                </Badge>
-              )}
-            </div>
-          </TableCell>
-          <TableCell className="w-1/6">
-            {getStatusBadge(candidate.status)}
-          </TableCell>
-          <TableCell className="w-1/12 text-right">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onViewCandidate?.(candidate.id);
-                  }}
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  Visualizza Dettagli
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEmailClick(candidate);
-                  }}
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  Invia Email
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'contacted' })}>
-                  Segna come Contattato
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'interviewed' })}>
-                  Segna come Intervistato
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'hired' })}>
-                  Segna come Assunto
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'rejected' })}>
-                  Segna come Scartato
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => {
-                    if (confirm('Sei sicuro di voler eliminare questo candidato?')) {
-                      deleteCandidate(candidate.id);
-                    }
-                  }}
-                >
-                  Elimina
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </TableCell>
-        </TableRow>
-      </motion.div>
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewCandidate?.(candidate.id);
+              }}
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              Visualizza Dettagli
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onEmailClick(candidate);
+              }}
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              Invia Email
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'contacted' })}>
+              Segna come Contattato
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'interviewed' })}>
+              Segna come Intervistato
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'hired' })}>
+              Segna come Assunto
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'rejected' })}>
+              Segna come Scartato
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => {
+                if (confirm('Sei sicuro di voler eliminare questo candidato?')) {
+                  deleteCandidate(candidate.id);
+                }
+              }}
+            >
+              Elimina
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
     </Reorder.Item>
   );
 };
