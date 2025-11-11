@@ -14,11 +14,11 @@ import {
   Calendar,
   Hash
 } from "lucide-react";
-import { motion, Reorder, useDragControls } from "framer-motion";
+import { motion } from "framer-motion"; // Manteniamo motion per l'animazione del container
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -75,51 +75,19 @@ interface CandidateItemProps {
   updateCandidate: (id: string, updates: any) => void;
   emailService: string;
   onEmailClick: (candidate: Candidate) => void;
-  index: number;
 }
 
-const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCandidate, emailService, onEmailClick, index }: CandidateItemProps) => {
-  const dragControls = useDragControls();
-  const [isDragging, setIsDragging] = useState(false);
-
+const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCandidate, emailService, onEmailClick }: CandidateItemProps) => {
   const initials = `${candidate.first_name[0]}${candidate.last_name[0]}`.toUpperCase();
 
   return (
-    <Reorder.Item
-      value={candidate}
-      dragListener={false}
-      dragControls={dragControls}
-      as="tr" // Forza il rendering come <tr> nativo
-      className={cn(
-        "border-b transition-colors cursor-pointer",
-        "hover:bg-secondary/50",
-        isDragging ? "bg-secondary/80 shadow-lg" : ""
-      )}
-      onDragStart={() => setIsDragging(true)}
-      onDragEnd={() => setTimeout(() => setIsDragging(false), 100)}
-      // Motion props applied internally by Reorder.Item
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -100 }}
-      transition={{ duration: 0.2 }}
-      onClick={() => {
-        if (!isDragging) {
-          onViewCandidate?.(candidate.id);
-        }
-      }}
+    <TableRow
+      key={candidate.id}
+      className="cursor-pointer hover:bg-secondary/50 transition-colors"
+      onClick={() => onViewCandidate?.(candidate.id)}
     >
-      <TableCell className="w-10 p-0">
-        <div
-          className="cursor-grab active:cursor-grabbing h-full flex items-center justify-center px-2"
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            dragControls.start(e);
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </div>
-      </TableCell>
+      {/* Rimosso: Drag Handle Column */}
+      
       <TableCell className="font-medium w-1/4">
         <div className="flex items-center space-x-3">
           <Avatar className="h-8 w-8">
@@ -212,7 +180,7 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
-    </Reorder.Item>
+    </TableRow>
   );
 };
 
@@ -221,21 +189,16 @@ interface CandidateListProps {
 }
 
 export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
-  const { candidates, loading, deleteCandidate, updateCandidate, reorderCandidates, fetchByDatabase } = useCandidates();
+  const { candidates, loading, deleteCandidate, updateCandidate, fetchByDatabase } = useCandidates();
   const { profile } = useProfile();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<string>("manual");
+  const [sortBy, setSortBy] = useState<string>("recent"); // Default to 'recent' since 'manual' is removed
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [orderedCandidates, setOrderedCandidates] = useState<Candidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
-
-  useEffect(() => {
-    setOrderedCandidates(candidates);
-  }, [candidates]);
 
   useEffect(() => {
     fetchByDatabase();
@@ -273,13 +236,7 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
     });
   };
 
-  const handleReorder = (newOrder: Candidate[]) => {
-    setOrderedCandidates(newOrder);
-    setSortBy("manual"); // Imposta automaticamente l'ordinamento manuale
-    reorderCandidates(newOrder);
-  };
-
-  const filteredCandidates = orderedCandidates
+  const sortedAndFilteredCandidates = candidates
     .filter(candidate => {
       const fullName = `${candidate.first_name} ${candidate.last_name}`.toLowerCase();
       const position = candidate.position?.toLowerCase() || '';
@@ -296,11 +253,8 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
         case 'name':
           return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
         case 'recent':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        case 'manual':
         default:
-          // Rispetta l'ordine dal database (order_index)
-          return 0;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
     });
 
@@ -320,7 +274,7 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Candidati</h1>
           <p className="text-muted-foreground">
-            Gestisci e visualizza tutti i candidati ({filteredCandidates.length})
+            Gestisci e visualizza tutti i candidati ({sortedAndFilteredCandidates.length})
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -374,7 +328,6 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
             <SelectValue placeholder="Ordina per" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="manual">Ordine manuale</SelectItem>
             <SelectItem value="recent">Più recenti</SelectItem>
             <SelectItem value="name">Nome</SelectItem>
           </SelectContent>
@@ -401,12 +354,11 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
         </motion.div>
       )}
 
-      {!loading && filteredCandidates.length > 0 && (
+      {!loading && sortedAndFilteredCandidates.length > 0 && (
         <Card className="shadow-soft border-0">
           <Table>
             <TableHeader>
               <TableRow className="bg-secondary/50 hover:bg-secondary/50">
-                <TableHead className="w-10"></TableHead> {/* Drag Handle */}
                 <TableHead className="w-1/4">Candidato</TableHead>
                 <TableHead className="w-1/5 hidden sm:table-cell">Posizione/Azienda</TableHead>
                 <TableHead className="w-1/5 hidden lg:table-cell">Competenze</TableHead>
@@ -414,13 +366,8 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
                 <TableHead className="w-1/12 text-right">Azioni</TableHead>
               </TableRow>
             </TableHeader>
-            <Reorder.Group
-              axis="y"
-              values={filteredCandidates}
-              onReorder={handleReorder}
-              as={TableBody}
-            >
-              {filteredCandidates.map((candidate, index) => (
+            <TableBody>
+              {sortedAndFilteredCandidates.map((candidate) => (
                 <CandidateItem
                   key={candidate.id}
                   candidate={candidate}
@@ -432,10 +379,9 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
                     setSelectedCandidate(candidate);
                     setShowEmailModal(true);
                   }}
-                  index={index}
                 />
               ))}
-            </Reorder.Group>
+            </TableBody>
           </Table>
         </Card>
       )}
