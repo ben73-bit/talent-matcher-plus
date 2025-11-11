@@ -135,7 +135,8 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
             <p className="text-sm font-medium">{candidate.first_name} {candidate.last_name}</p>
             <p className="text-xs text-muted-foreground">{candidate.email}</p>
           </div>
-        </TableCell>
+        </div>
+      </TableCell>
       <TableCell className="w-1/5 hidden sm:table-cell">
         <div className="text-sm">{candidate.position || 'N/D'}</div>
         <div className="text-xs text-muted-foreground">{candidate.company || 'N/D'}</div>
