@@ -194,7 +194,7 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<string>("recent"); // Default to 'recent' since 'manual' is removed
+  const [sortBy, setSortBy] = useState<string>("recent"); // Default to 'recent'
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -251,9 +251,11 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
     .sort((a, b) => {
       switch (sortBy) {
         case 'name':
+          // Ordine alfabetico (A-Z)
           return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
         case 'recent':
         default:
+          // Più recenti (Z-A)
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
     });
@@ -329,7 +331,7 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="recent">Più recenti</SelectItem>
-            <SelectItem value="name">Nome</SelectItem>
+            <SelectItem value="name">Alfabetico (A-Z)</SelectItem>
           </SelectContent>
         </Select>
       </motion.div>
