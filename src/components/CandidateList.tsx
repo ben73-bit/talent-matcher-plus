@@ -68,8 +68,8 @@ const getStatusBadge = (status: Candidate['status']) => {
   );
 };
 
-// Rimuoviamo MotionTableRow non necessario
-// const MotionTableRow = motion(TableRow);
+// Creiamo un componente motion per TableRow per poter applicare le proprietà di framer-motion
+const MotionTableRow = motion(TableRow);
 
 interface CandidateItemProps {
   candidate: Candidate;
@@ -92,7 +92,7 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
       value={candidate}
       dragListener={false}
       dragControls={dragControls}
-      as="tr" // Forza il rendering come <tr>
+      as={MotionTableRow} // Utilizza MotionTableRow
       className={cn(
         "border-b transition-colors cursor-pointer",
         "hover:bg-secondary/50",
@@ -100,7 +100,7 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
       )}
       onDragStart={() => setIsDragging(true)}
       onDragEnd={() => setTimeout(() => setIsDragging(false), 100)}
-      // Motion props applied directly to the <tr> element
+      // Motion props applied directly to the Reorder.Item (which renders MotionTableRow)
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -100 }}
@@ -458,7 +458,7 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
                 <SelectContent>
                   <SelectItem value="new">Nuovo</SelectItem>
                   <SelectItem value="contacted">Contattato</SelectItem>
-                  <SelectItem value="interviewed">Colloquio</SelectItem>
+                  <SelectItem value="interviewed">Intervistato</SelectItem>
                   <SelectItem value="hired">Assunto</SelectItem>
                   <SelectItem value="rejected">Rifiutato</SelectItem>
                 </SelectContent>
