@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, Briefcase, Users, Zap, CheckCircle, XCircle, TrendingUp, Mail } from 'lucide-react';
+import { ArrowLeft, Briefcase, Users, Zap, CheckCircle, XCircle, TrendingUp, Mail, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -68,6 +68,11 @@ const getScoreColor = (score: number) => {
 
 const CandidateMatchItem = ({ candidate, score }: { candidate: Candidate, score: number }) => {
   const initials = `${candidate.first_name[0]}${candidate.last_name[0]}`.toUpperCase();
+  
+  // NOTE: This component relies on 'position' being defined in the outer scope, 
+  // which is passed to PositionMatchingView.
+  // We need to ensure 'position' is accessible here, or passed down.
+  // Since CandidateMatchItem is defined inside PositionMatchingView, it has access to 'position'.
   
   const requiredSkills = candidate.skills || [];
   const matchedSkills = requiredSkills.filter(skill => 
