@@ -206,6 +206,42 @@ export type Database = {
         }
         Relationships: []
       }
+      job_positions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          max_experience_years: number | null
+          min_experience_years: number | null
+          required_skills: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_experience_years?: number | null
+          min_experience_years?: number | null
+          required_skills?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_experience_years?: number | null
+          min_experience_years?: number | null
+          required_skills?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -305,7 +341,7 @@ export type Database = {
           export_include_cvs?: boolean | null
           export_include_photos?: boolean | null
           first_name?: string | null
-          google_ai_api_key?: string | null
+          google_ai_ai_key?: string | null
           id?: string
           language?: string | null
           last_name?: string | null

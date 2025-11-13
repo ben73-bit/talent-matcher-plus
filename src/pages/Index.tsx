@@ -7,7 +7,8 @@ import { CandidateList } from "@/components/CandidateList";
 import { AddCandidate } from "@/components/AddCandidate";
 import { EditCandidate } from "@/components/EditCandidate";
 import { CandidateDetailsDialog } from "@/components/CandidateDetailsDialog";
-import { ScheduleInterview } from "@/components/ScheduleInterview"; // Import ScheduleInterview
+import { ScheduleInterview } from "@/components/ScheduleInterview";
+import { PositionManager } from "@/components/PositionManager"; // Import PositionManager
 import { useAuth } from "@/hooks/useAuth";
 import { useCandidates } from "@/hooks/useCandidates";
 import { Button } from "@/components/ui/button";
@@ -140,14 +141,7 @@ const Index = () => {
           />
         ) : null;
       case "positions":
-        return (
-          <div className="flex items-center justify-center h-96">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl font-bold text-foreground">Posizioni</h2>
-              <p className="text-muted-foreground">Funzionalità in arrivo...</p>
-            </div>
-          </div>
-        );
+        return <PositionManager />; // Render the new component
       case "interviews":
         return <ScheduleInterview onBack={() => setActiveTab("dashboard")} />;
       case "reports":
