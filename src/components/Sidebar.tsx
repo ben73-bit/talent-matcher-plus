@@ -24,7 +24,7 @@ export const Sidebar = ({ activeTab, onTabChange, candidatesCount = 0 }: Sidebar
     // { id: 'databases', icon: Database, label: 'Database', badge: null }, // Rimosso
     { id: 'candidates', icon: Users, label: 'Candidati', badge: candidatesCount > 0 ? candidatesCount.toString() : null },
     { id: 'positions', icon: Briefcase, label: 'Posizioni', badge: '12' },
-    { id: 'interviews', icon: Calendar, label: 'Colloqui', badge: '8' },
+    { id: 'interviews', icon: Calendar, label: 'Colloqui', badge: null }, // Rimosso badge fisso '8'
     { id: 'reports', icon: BarChart3, label: 'Report', badge: null },
     { id: 'templates', icon: FileText, label: 'Template', badge: null },
   ];

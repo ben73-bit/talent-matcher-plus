@@ -7,6 +7,7 @@ import { CandidateList } from "@/components/CandidateList";
 import { AddCandidate } from "@/components/AddCandidate";
 import { EditCandidate } from "@/components/EditCandidate";
 import { CandidateDetailsDialog } from "@/components/CandidateDetailsDialog";
+import { ScheduleInterview } from "@/components/ScheduleInterview"; // Import ScheduleInterview
 import { useAuth } from "@/hooks/useAuth";
 import { useCandidates } from "@/hooks/useCandidates";
 import { Button } from "@/components/ui/button";
@@ -148,14 +149,7 @@ const Index = () => {
           </div>
         );
       case "interviews":
-        return (
-          <div className="flex items-center justify-center h-96">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl font-bold text-foreground">Colloqui</h2>
-              <p className="text-muted-foreground">Funzionalità in arrivo...</p>
-            </div>
-          </div>
-        );
+        return <ScheduleInterview onBack={() => setActiveTab("dashboard")} />;
       case "reports":
         return (
           <div className="flex items-center justify-center h-96">
