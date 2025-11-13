@@ -17,9 +17,8 @@ interface PositionFormProps {
 }
 
 export const PositionForm = ({ initialPosition, onBack, onSave }: PositionFormProps) => {
-  const { createPosition, updatePosition } = useJobPositions();
+  const { createPosition, updatePosition, isCreating, isUpdating } = useJobPositions();
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [skillsInput, setSkillsInput] = useState('');
   
   const [formData, setFormData] = useState<CreateJobPositionData>({
@@ -31,6 +30,7 @@ export const PositionForm = ({ initialPosition, onBack, onSave }: PositionFormPr
   });
 
   const isEditMode = !!initialPosition;
+  const isSubmitting = isCreating || isUpdating;
 
   const handleInputChange = (field: keyof CreateJobPositionData, value: string | number | string[]) => {
     setFormData(prev => ({
@@ -64,7 +64,6 @@ export const PositionForm = ({ initialPosition, onBack, onSave }: PositionFormPr
       return;
     }
 
-    setIsSubmitting(true);
     let result;
 
     const payload = {
@@ -74,15 +73,18 @@ export const PositionForm = ({ initialPosition, onBack, onSave }: PositionFormPr
       required_skills: formData.required_skills || [],
     };
 
-    if (isEditMode && initialPosition) {
-      result = await updatePosition(initialPosition.id, payload);
-    } else {
-      result = await createPosition(payload);
-    }
-
-    setIsSubmitting(false);
-    if (result) {
-      onSave();
+    try {
+      if (isEditMode && initialPosition) {
+        result = await updatePosition({ id: initialPosition.id, updates: payload });
+      } else {
+        result = await createPosition(payload);
+      }
+      
+      if (result) {
+        onSave();
+      }
+    } catch (error) {
+      // Error handling is done inside the hook's mutation onError
     }
   };
 
@@ -208,7 +210,7 @@ export const PositionForm = ({ initialPosition, onBack, onSave }: PositionFormPr
             </div>
 
             <div className="flex justify-end space-x-4 pt-4">
-              <Button type="button" variant="outline" onClick={onBack}>
+              <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
                 Annulla
               </Button>
               <Button type="submit" disabled={isSubmitting}>

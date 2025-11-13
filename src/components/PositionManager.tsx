@@ -22,7 +22,7 @@ import {
 type ViewState = 'list' | 'create' | 'edit' | 'match';
 
 export const PositionManager = () => {
-  const { positions, loading, deletePosition, refetch } = useJobPositions();
+  const { positions, loading, deletePosition, isDeleting } = useJobPositions();
   const { toast } = useToast();
   const [view, setView] = useState<ViewState>('list');
   const [selectedPosition, setSelectedPosition] = useState<JobPosition | null>(null);
@@ -40,21 +40,22 @@ export const PositionManager = () => {
 
   const handleDelete = async () => {
     if (selectedPosition) {
-      const success = await deletePosition(selectedPosition.id);
-      if (success) {
-        // Chiamata esplicita a refetch per garantire che Index.tsx riceva l'aggiornamento
-        // anche se useJobPositions aggiorna lo stato locale.
-        refetch(); 
+      try {
+        await deletePosition(selectedPosition.id);
+        // Tanstack Query handles invalidation and re-fetching automatically
+      } catch (error) {
+        // Error handled by the hook's mutation onError
+      } finally {
+        setShowDeleteDialog(false);
+        setSelectedPosition(null);
       }
-      setShowDeleteDialog(false);
-      setSelectedPosition(null);
     }
   };
 
   const handleBackToList = () => {
     setSelectedPosition(null);
     setView('list');
-    refetch();
+    // No need for explicit refetch here, as mutations handle invalidation
   };
 
   if (loading) {
@@ -174,8 +175,13 @@ export const PositionManager = () => {
                     setSelectedPosition(position);
                     setShowDeleteDialog(true);
                   }}
+                  disabled={isDeleting}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  {isDeleting && selectedPosition?.id === position.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
             </Card>
@@ -193,9 +199,9 @@ export const PositionManager = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annulla</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-              Elimina
+            <AlertDialogCancel disabled={isDeleting}>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+              {isDeleting ? 'Eliminazione...' : 'Elimina'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

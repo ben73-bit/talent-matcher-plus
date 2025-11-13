@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from '@/components/ui/use-toast';
@@ -8,45 +8,35 @@ export type JobPosition = Tables<'job_positions'>;
 export type CreateJobPositionData = Omit<JobPosition, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
 export type UpdateJobPositionData = Partial<CreateJobPositionData>;
 
+const JOB_POSITIONS_QUERY_KEY = ['job_positions'];
+
 export function useJobPositions() {
-  const [positions, setPositions] = useState<JobPosition[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchPositions = async () => {
-    if (!user) {
-      setPositions([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
+  // 1. Fetch Positions (useQuery)
+  const { data: positions = [], isLoading: loading, refetch } = useQuery<JobPosition[]>({
+    queryKey: JOB_POSITIONS_QUERY_KEY,
+    queryFn: async () => {
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from('job_positions')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      return (data || []) as JobPosition[];
+    },
+    enabled: !!user,
+  });
 
-      setPositions((data || []) as JobPosition[]);
-    } catch (error) {
-      console.error('Error fetching job positions:', error);
-      toast({
-        title: "Errore",
-        description: "Impossibile caricare le posizioni lavorative",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 2. Create Position (useMutation)
+  const createMutation = useMutation({
+    mutationFn: async (positionData: CreateJobPositionData) => {
+      if (!user) throw new Error("User not authenticated");
 
-  const createPosition = async (positionData: CreateJobPositionData) => {
-    if (!user) return null;
-
-    try {
       const { data, error } = await supabase
         .from('job_positions')
         .insert([{ ...positionData, user_id: user.id }])
@@ -54,28 +44,30 @@ export function useJobPositions() {
         .single();
 
       if (error) throw error;
-
-      setPositions(prev => [data as JobPosition, ...prev]);
+      return data as JobPosition;
+    },
+    onSuccess: (newPosition) => {
+      queryClient.invalidateQueries({ queryKey: JOB_POSITIONS_QUERY_KEY });
       toast({
         title: "Successo",
-        description: `Posizione '${data.title}' creata con successo.`,
+        description: `Posizione '${newPosition.title}' creata con successo.`,
       });
-      return data as JobPosition;
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Error creating job position:', error);
       toast({
         title: "Errore",
         description: "Impossibile creare la posizione lavorativa",
         variant: "destructive",
       });
-      return null;
     }
-  };
+  });
 
-  const updatePosition = async (id: string, updates: UpdateJobPositionData) => {
-    if (!user) return null;
+  // 3. Update Position (useMutation)
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string, updates: UpdateJobPositionData }) => {
+      if (!user) throw new Error("User not authenticated");
 
-    try {
       const { data, error } = await supabase
         .from('job_positions')
         .update(updates)
@@ -85,30 +77,30 @@ export function useJobPositions() {
         .single();
 
       if (error) throw error;
-
-      setPositions(prev => 
-        prev.map(p => p.id === id ? data as JobPosition : p)
-      );
+      return data as JobPosition;
+    },
+    onSuccess: (updatedPosition) => {
+      queryClient.invalidateQueries({ queryKey: JOB_POSITIONS_QUERY_KEY });
       toast({
         title: "Successo",
-        description: `Posizione '${data.title}' aggiornata con successo.`,
+        description: `Posizione '${updatedPosition.title}' aggiornata con successo.`,
       });
-      return data as JobPosition;
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Error updating job position:', error);
       toast({
         title: "Errore",
         description: "Impossibile aggiornare la posizione lavorativa",
         variant: "destructive",
       });
-      return null;
     }
-  };
+  });
 
-  const deletePosition = async (id: string) => {
-    if (!user) return false;
+  // 4. Delete Position (useMutation)
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!user) throw new Error("User not authenticated");
 
-    try {
       const { error } = await supabase
         .from('job_positions')
         .delete()
@@ -116,39 +108,39 @@ export function useJobPositions() {
         .eq('user_id', user.id);
 
       if (error) throw error;
-
-      setPositions(prev => prev.filter(p => p.id !== id));
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: JOB_POSITIONS_QUERY_KEY });
       toast({
         title: "Successo",
         description: "Posizione eliminata con successo.",
       });
-      return true;
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Error deleting job position:', error);
       toast({
         title: "Errore",
         description: "Impossibile eliminare la posizione lavorativa",
         variant: "destructive",
       });
-      return false;
     }
-  };
+  });
 
   const getPositionById = (id: string) => {
     return positions.find(p => p.id === id);
   };
 
-  useEffect(() => {
-    fetchPositions();
-  }, [user]);
-
   return {
     positions,
     loading,
-    createPosition,
-    updatePosition,
-    deletePosition,
+    createPosition: createMutation.mutateAsync,
+    updatePosition: updateMutation.mutateAsync,
+    deletePosition: deleteMutation.mutateAsync,
     getPositionById,
-    refetch: fetchPositions,
+    refetch,
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   };
 }
