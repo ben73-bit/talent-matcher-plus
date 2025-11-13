@@ -115,7 +115,7 @@ export function useCandidates() {
             ...candidateData,
             user_id: user.id,
             status: candidateData.status || 'new',
-            database_id: null, // Assicurati che sia sempre null
+            database_id: null, // Mantenuto a null in fase di creazione
           }
         ])
         .select()
@@ -145,14 +145,24 @@ export function useCandidates() {
 
   // Update candidate
   const updateCandidate = async (id: string, updates: UpdateCandidateData) => {
+    if (!user) {
+      toast({
+        title: "Errore",
+        description: "Utente non autenticato",
+        variant: "destructive",
+      });
+      return null;
+    }
+    
     try {
-      const updatesWithNullDatabase = { ...updates, database_id: null }; // Assicurati che database_id non venga aggiornato o sia null
+      // Rimuovo l'assegnazione esplicita di database_id: null per evitare potenziali conflitti
+      // e mi affido al fatto che database_id non è in UpdateCandidateData.
       
       const { data, error } = await supabase
         .from('candidates')
-        .update(updatesWithNullDatabase)
+        .update(updates) // Uso direttamente 'updates'
         .eq('id', id)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id) // Assicuro che user.id sia usato
         .select()
         .single();
 
