@@ -66,17 +66,21 @@ const getScoreColor = (score: number) => {
   return 'bg-destructive';
 };
 
-const CandidateMatchItem = ({ candidate, score }: { candidate: Candidate, score: number }) => {
+interface CandidateMatchItemProps {
+  candidate: Candidate;
+  score: number;
+  position: JobPosition; // Aggiunto position come prop
+}
+
+const CandidateMatchItem = ({ candidate, score, position }: CandidateMatchItemProps) => {
   const initials = `${candidate.first_name[0]}${candidate.last_name[0]}`.toUpperCase();
   
-  // NOTE: This component relies on 'position' being defined in the outer scope, 
-  // which is passed to PositionMatchingView.
-  // We need to ensure 'position' is accessible here, or passed down.
-  // Since CandidateMatchItem is defined inside PositionMatchingView, it has access to 'position'.
-  
-  const requiredSkills = candidate.skills || [];
-  const matchedSkills = requiredSkills.filter(skill => 
-    position.required_skills?.some(reqSkill => skill.toLowerCase() === reqSkill.toLowerCase())
+  const requiredSkills = position.required_skills || [];
+  const candidateSkills = candidate.skills || [];
+
+  // Calcola le competenze corrispondenti basandosi sulle required_skills della posizione
+  const matchedSkills = candidateSkills.filter(skill => 
+    requiredSkills.some(reqSkill => skill.toLowerCase() === reqSkill.toLowerCase())
   );
 
   return (
@@ -213,7 +217,7 @@ export const PositionMatchingView = ({ position, onBack }: PositionMatchingViewP
           </div>
         ) : (
           rankedCandidates.map(({ candidate, score }) => (
-            <CandidateMatchItem key={candidate.id} candidate={candidate} score={score} />
+            <CandidateMatchItem key={candidate.id} candidate={candidate} score={score} position={position} />
           ))
         )}
       </div>
