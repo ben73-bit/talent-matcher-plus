@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar as CalendarIcon, Clock, User, Mail, Link, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Calendar as CalendarIcon, Clock, User, Mail, Link, ExternalLink, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -127,6 +127,16 @@ export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
     return 'custom';
   };
 
+  const handleCalendarPreview = () => {
+    try {
+      const [year, month, day] = dateString.split('-');
+      const previewLink = `https://calendar.google.com/calendar/r/day/${year}/${month}/${day}`;
+      window.open(previewLink, '_blank');
+    } catch (e) {
+      toast({ title: 'Errore', description: 'Data non valida per l\'anteprima del calendario.', variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
@@ -212,6 +222,17 @@ export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
                 </Select>
               </div>
             </div>
+            
+            {/* Calendar Preview Button */}
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleCalendarPreview}
+              className="w-full"
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              Anteprima Calendario (Google Calendar)
+            </Button>
 
             {/* Location Type Select */}
             <div className="space-y-2">
