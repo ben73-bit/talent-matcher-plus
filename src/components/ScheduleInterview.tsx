@@ -129,8 +129,12 @@ export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
 
   const handleCalendarPreview = () => {
     try {
+      // Estrae anno, mese e giorno dalla stringa YYYY-MM-DD
       const [year, month, day] = dateString.split('-');
-      const previewLink = `https://calendar.google.com/calendar/r/day/${year}/${month}/${day}`;
+      
+      // Modifica il link per aprire la visualizzazione mensile (/r/month/)
+      // Usiamo il giorno 01 per assicurare che il mese sia centrato correttamente, anche se Google Calendar è flessibile.
+      const previewLink = `https://calendar.google.com/calendar/r/month/${year}/${month}/01`;
       window.open(previewLink, '_blank');
     } catch (e) {
       toast({ title: 'Errore', description: 'Data non valida per l\'anteprima del calendario.', variant: 'destructive' });
@@ -231,7 +235,7 @@ export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
               className="w-full"
             >
               <Eye className="mr-2 h-4 w-4" />
-              Anteprima Calendario (Google Calendar)
+              Anteprima Calendario (Visualizzazione Mese)
             </Button>
 
             {/* Location Type Select */}
