@@ -40,7 +40,12 @@ export const PositionManager = () => {
 
   const handleDelete = async () => {
     if (selectedPosition) {
-      await deletePosition(selectedPosition.id);
+      const success = await deletePosition(selectedPosition.id);
+      if (success) {
+        // Chiamata esplicita a refetch per garantire che Index.tsx riceva l'aggiornamento
+        // anche se useJobPositions aggiorna lo stato locale.
+        refetch(); 
+      }
       setShowDeleteDialog(false);
       setSelectedPosition(null);
     }
