@@ -54,7 +54,7 @@ const generateGoogleCalendarLink = (
 };
 
 export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
-  const { candidates, loading } = useCandidates();
+  const { candidates, loading, updateCandidate } = useCandidates();
   const { toast } = useToast();
   
   const [selectedCandidateId, setSelectedCandidateId] = useState<string>('');
@@ -67,7 +67,7 @@ export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
 
   const selectedCandidate = candidates.find(c => c.id === selectedCandidateId);
 
-  const handleSchedule = (e: React.FormEvent) => {
+  const handleSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!selectedCandidate) {
@@ -102,9 +102,12 @@ export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
       // Open the link immediately
       window.open(link, '_blank');
 
+      // 1. Update candidate status to 'interviewed'
+      await updateCandidate(selectedCandidate.id, { status: 'interviewed' }); 
+
       toast({
         title: 'Link Calendario Generato',
-        description: 'Apri il link per confermare l\'appuntamento su Google Calendar.',
+        description: 'Apri il link per confermare l\'appuntamento su Google Calendar. Lo stato del candidato è stato aggiornato a "Colloquio".',
       });
 
     } catch (error) {
