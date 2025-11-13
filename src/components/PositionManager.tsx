@@ -3,6 +3,7 @@ import { Briefcase, Plus, Search, Trash2, Edit, Zap, Loader2, ArrowLeft } from '
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { useJobPositions, JobPosition } from '@/hooks/useJobPositions';
 import { PositionForm } from './PositionForm';
 import { PositionMatchingView } from './PositionMatchingView';
