@@ -11,6 +11,7 @@ import { ScheduleInterview } from "@/components/ScheduleInterview";
 import { PositionManager } from "@/components/PositionManager"; // Import PositionManager
 import { useAuth } from "@/hooks/useAuth";
 import { useCandidates } from "@/hooks/useCandidates";
+import { useJobPositions } from "@/hooks/useJobPositions";
 import { Button } from "@/components/ui/button";
 import { Building2, LogIn } from "lucide-react";
 
@@ -18,6 +19,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { getCandidateById, candidates } = useCandidates();
+  const { positions } = useJobPositions();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -175,6 +177,7 @@ const Index = () => {
           activeTab={activeTab} 
           onTabChange={handleTabChange}
           candidatesCount={candidates.length}
+          positionsCount={positions.length}
         />
         <main className="flex-1 overflow-auto p-6">
           {renderContent()}

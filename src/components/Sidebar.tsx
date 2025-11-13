@@ -16,14 +16,15 @@ interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   candidatesCount?: number;
+  positionsCount?: number;
 }
 
-export const Sidebar = ({ activeTab, onTabChange, candidatesCount = 0 }: SidebarProps) => {
+export const Sidebar = ({ activeTab, onTabChange, candidatesCount = 0, positionsCount = 0 }: SidebarProps) => {
   const navigation = [
     { id: 'dashboard', icon: Home, label: 'Dashboard', badge: null },
     // { id: 'databases', icon: Database, label: 'Database', badge: null }, // Rimosso
     { id: 'candidates', icon: Users, label: 'Candidati', badge: candidatesCount > 0 ? candidatesCount.toString() : null },
-    { id: 'positions', icon: Briefcase, label: 'Posizioni', badge: '12' },
+    { id: 'positions', icon: Briefcase, label: 'Posizioni', badge: positionsCount > 0 ? positionsCount.toString() : null },
     { id: 'interviews', icon: Calendar, label: 'Colloqui', badge: null }, // Rimosso badge fisso '8'
     { id: 'reports', icon: BarChart3, label: 'Report', badge: null },
     { id: 'templates', icon: FileText, label: 'Template', badge: null },
