@@ -62,8 +62,8 @@ export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
   const [timeString, setTimeString] = useState(format(new Date(), 'HH:mm'));
   const [duration, setDuration] = useState('60');
   const [location, setLocation] = useState('Online (Google Meet/Zoom)');
-  const [description, setDescription] = useState('');
   const [calendarLink, setCalendarLink] = useState<string | null>(null);
+  const [description, setDescription] = useState('');
 
   const selectedCandidate = candidates.find(c => c.id === selectedCandidateId);
 
@@ -72,6 +72,11 @@ export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
     
     if (!selectedCandidate) {
       toast({ title: 'Errore', description: 'Seleziona un candidato valido.', variant: 'destructive' });
+      return;
+    }
+    
+    if (!location.trim()) {
+      toast({ title: 'Errore', description: 'Il luogo del colloquio è obbligatorio.', variant: 'destructive' });
       return;
     }
 
@@ -102,13 +107,21 @@ export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
         description: 'Apri il link per confermare l\'appuntamento su Google Calendar.',
       });
 
-      // Optionally update candidate status to 'interviewed'
-      // updateCandidate(selectedCandidate.id, { status: 'interviewed' }); 
-
     } catch (error) {
       console.error('Scheduling error:', error);
       toast({ title: 'Errore di Pianificazione', description: 'Impossibile generare il link del calendario.', variant: 'destructive' });
     }
+  };
+
+  // Determina il valore selezionato nel dropdown in base al testo attuale del luogo
+  const getLocationSelectValue = () => {
+    if (location.toLowerCase().includes('online') || location.toLowerCase().includes('meet') || location.toLowerCase().includes('zoom')) {
+      return 'online';
+    }
+    if (location.toLowerCase().includes('ufficio') || location.toLowerCase().includes('sede') || location.toLowerCase().includes('presenza')) {
+      return 'in_person';
+    }
+    return 'custom';
   };
 
   return (
@@ -197,14 +210,37 @@ export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
               </div>
             </div>
 
-            {/* Location */}
+            {/* Location Type Select */}
             <div className="space-y-2">
-              <Label htmlFor="location">Luogo</Label>
+              <Label htmlFor="location-select">Tipo di Luogo</Label>
+              <Select 
+                value={getLocationSelectValue()} 
+                onValueChange={(value) => {
+                  if (value === 'online') {
+                    setLocation('Online (Google Meet/Zoom)');
+                  } else if (value === 'in_person') {
+                    setLocation('Ufficio / Sede Aziendale');
+                  }
+                }}
+              >
+                <SelectTrigger id="location-select">
+                  <SelectValue placeholder="Seleziona tipo di luogo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="online">Online</SelectItem>
+                  <SelectItem value="in_person">In presenza</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Location Details Input */}
+            <div className="space-y-2">
+              <Label htmlFor="location-input">Dettagli Luogo</Label>
               <Input
-                id="location"
+                id="location-input"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="Es. Ufficio, Link Google Meet"
+                placeholder="Es. Link Google Meet, Indirizzo Ufficio"
                 required
               />
             </div>
@@ -221,7 +257,7 @@ export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={!selectedCandidateId}>
+            <Button type="submit" className="w-full" disabled={!selectedCandidateId || !location.trim()}>
               <Link className="mr-2 h-4 w-4" />
               Genera Link Google Calendar
             </Button>
