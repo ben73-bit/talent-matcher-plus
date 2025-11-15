@@ -81,8 +81,8 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="flex-1 max-w-md mx-8">
+        {/* Search Rimosso */}
+        {/* <div className="flex-1 max-w-md mx-8">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
@@ -90,7 +90,7 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
               className="pl-10 bg-secondary/50 border-0 focus-visible:bg-card transition-fast"
             />
           </div>
-        </div>
+        </div> */}
 
         {/* Actions */}
         <div className="flex items-center space-x-4">
