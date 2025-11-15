@@ -8,6 +8,7 @@ import {
   Eye,
   List,
   LayoutGrid,
+  Upload, // <-- Aggiunto Upload
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -101,7 +102,7 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
             <p className="text-sm font-medium">{candidate.first_name} {candidate.last_name}</p>
             <p className="text-xs text-muted-foreground">{candidate.email}</p>
           </div>
-        </div>
+        </div >
       </TableCell>
       <TableCell className="w-1/5 hidden sm:table-cell" onClick={() => onViewCandidate(candidate.id)}>
         <div className="text-sm">{candidate.position || 'N/D'}</div>
