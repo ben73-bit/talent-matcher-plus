@@ -122,21 +122,22 @@ export function useCandidates() {
         .single();
 
       if (error) {
+        // Log the detailed error for debugging
+        console.error('Supabase insertion error details:', error);
         throw error;
       }
 
       setCandidates(prev => [data as Candidate, ...prev]);
-      toast({
-        title: "Successo",
-        description: "Candidato aggiunto con successo",
-      });
-
+      // NOTE: We skip the success toast here because ImportCandidatesDialog handles the batch success toast.
+      // If this function is called outside of batch import, the caller should handle the toast.
+      
       return data;
     } catch (error) {
       console.error('Error creating candidate:', error);
+      // Display a more informative error if possible, but keep it generic for batch import context
       toast({
         title: "Errore",
-        description: "Impossibile aggiungere il candidato",
+        description: "Impossibile aggiungere il candidato. Controlla la console per i dettagli.",
         variant: "destructive",
       });
       return null;
