@@ -217,7 +217,7 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
         notes: formData.notes,
         photo_url: photoUrl || undefined,
         cv_url: cvUrl || undefined,
-        database_id: null, // Imposto a null per rimuovere l'associazione al database
+        // database_id: null, // Rimosso l'assegnazione esplicita
       });
       
       toast({
