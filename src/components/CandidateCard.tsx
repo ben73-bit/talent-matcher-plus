@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel, // <-- Aggiunto DropdownMenuLabel
 } from "@/components/ui/dropdown-menu";
 
 interface CandidateCardProps {
