@@ -54,7 +54,7 @@ export const ImportCandidatesDialog = ({ open, onOpenChange }: ImportCandidatesD
     Papa.parse(csvFile, {
       header: true,
       skipEmptyLines: true,
-      dynamicTyping: true,
+      // Rimosso dynamicTyping per gestire esplicitamente i tipi
       complete: (results) => {
         setIsParsing(false);
         
@@ -75,15 +75,18 @@ export const ImportCandidatesDialog = ({ open, onOpenChange }: ImportCandidatesD
           return;
         }
 
-        // Helper to ensure optional string fields are undefined if empty/null
+        // Helper per garantire che i campi stringa opzionali vuoti siano 'undefined'
         const getOptionalString = (value: any) => {
+          // Coerce a string, trim it, and return undefined if empty
           const str = String(value || '').trim();
           return str.length > 0 ? str : undefined;
         };
 
         // Map and clean data
         const candidatesToImport: CreateCandidateData[] = data.map(row => {
-          const expValue = parseInt(row.experience_years);
+          // Coerce experience_years to string before parsing
+          const rawExp = String(row.experience_years || '').trim();
+          const expValue = parseInt(rawExp);
           
           // Status validation and normalization
           const rawStatus = getOptionalString(row.status);
@@ -91,13 +94,16 @@ export const ImportCandidatesDialog = ({ open, onOpenChange }: ImportCandidatesD
             ? rawStatus.toLowerCase() as Candidate['status']
             : 'new';
 
+          // Coerce required fields to string and trim
+          const firstName = String(row.first_name || '').trim();
+          const lastName = String(row.last_name || '').trim();
+          const email = String(row.email || '').trim();
+
           return {
-            // Required fields (coerced to string)
-            first_name: String(row.first_name || '').trim(),
-            last_name: String(row.last_name || '').trim(),
-            email: String(row.email || '').trim(),
+            first_name: firstName,
+            last_name: lastName,
+            email: email,
             
-            // Optional fields (mapped to undefined if empty)
             phone: getOptionalString(row.phone),
             position: getOptionalString(row.position),
             company: getOptionalString(row.company),
@@ -105,7 +111,7 @@ export const ImportCandidatesDialog = ({ open, onOpenChange }: ImportCandidatesD
             // Experience years (number or undefined)
             experience_years: !isNaN(expValue) ? expValue : undefined,
             
-            // Skills (array of strings or undefined)
+            // Skills (array of strings or undefined) - uses semicolon delimiter
             skills: row.skills ? (Array.isArray(row.skills) ? row.skills : String(row.skills).split(';').map((s: string) => s.trim()).filter(s => s.length > 0)) : undefined,
             
             notes: getOptionalString(row.notes),
