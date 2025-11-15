@@ -115,7 +115,7 @@ export function useCandidates() {
             ...candidateData,
             user_id: user.id,
             status: candidateData.status || 'new',
-            database_id: null, // Mantenuto a null in fase di creazione
+            // Rimosso database_id: null per risolvere l'errore PGRST204
           }
         ])
         .select()
