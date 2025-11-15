@@ -99,8 +99,8 @@ export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
       
       setCalendarLink(link);
       
-      // Open the link immediately
-      window.open(link, '_blank');
+      // Open the link immediately, reusing the same window target
+      window.open(link, 'googleCalendarWindow');
 
       // 1. Update candidate status to 'interviewed'
       await updateCandidate(selectedCandidate.id, { status: 'interviewed' }); 
@@ -135,7 +135,8 @@ export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
       // Modifica il link per aprire la visualizzazione mensile (/r/month/)
       // Usiamo il giorno 01 per assicurare che il mese sia centrato correttamente, anche se Google Calendar è flessibile.
       const previewLink = `https://calendar.google.com/calendar/r/month/${year}/${month}/01`;
-      window.open(previewLink, '_blank');
+      // Open the link, reusing the same window target
+      window.open(previewLink, 'googleCalendarWindow');
     } catch (e) {
       toast({ title: 'Errore', description: 'Data non valida per l\'anteprima del calendario.', variant: 'destructive' });
     }
@@ -299,7 +300,7 @@ export const ScheduleInterview = ({ onBack }: ScheduleInterviewProps) => {
             <p className="font-medium text-primary">Link Generato con Successo</p>
             <a 
               href={calendarLink} 
-              target="_blank" 
+              target="googleCalendarWindow" // Assicura che si apra nella stessa scheda
               rel="noopener noreferrer" 
               className="text-sm text-primary/80 hover:underline flex items-center gap-2 break-all"
             >
