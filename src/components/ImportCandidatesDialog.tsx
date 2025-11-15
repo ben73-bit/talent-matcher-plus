@@ -21,6 +21,7 @@ interface ImportCandidatesDialogProps {
 
 // Definisce i campi minimi richiesti per l'importazione
 const REQUIRED_FIELDS = ['first_name', 'last_name', 'email'];
+const VALID_STATUSES: Candidate['status'][] = ['new', 'contacted', 'interviewed', 'hired', 'rejected'];
 
 export const ImportCandidatesDialog = ({ open, onOpenChange }: ImportCandidatesDialogProps) => {
   const { toast } = useToast();
@@ -84,6 +85,12 @@ export const ImportCandidatesDialog = ({ open, onOpenChange }: ImportCandidatesD
         const candidatesToImport: CreateCandidateData[] = data.map(row => {
           const expValue = parseInt(row.experience_years);
           
+          // Status validation and normalization
+          const rawStatus = getOptionalString(row.status);
+          const status = rawStatus && VALID_STATUSES.includes(rawStatus.toLowerCase() as Candidate['status'])
+            ? rawStatus.toLowerCase() as Candidate['status']
+            : 'new';
+
           return {
             // Required fields (coerced to string)
             first_name: String(row.first_name || '').trim(),
@@ -103,8 +110,8 @@ export const ImportCandidatesDialog = ({ open, onOpenChange }: ImportCandidatesD
             
             notes: getOptionalString(row.notes),
             
-            // Status (defaults to 'new' if empty/invalid)
-            status: getOptionalString(row.status) as Candidate['status'] || 'new',
+            // Status (validated and normalized)
+            status: status,
           };
         }).filter(c => c.first_name.length > 0 && c.last_name.length > 0 && c.email.length > 0); // Filter out invalid entries
 
@@ -145,9 +152,6 @@ export const ImportCandidatesDialog = ({ open, onOpenChange }: ImportCandidatesD
     let errorCount = 0;
 
     for (const candidateData of parsedData) {
-      // We need to ensure that createCandidate doesn't throw an unhandled exception
-      // that stops the loop or causes the toast spam.
-      // The useCandidates hook already handles errors internally and returns null on failure.
       const result = await createCandidate(candidateData);
       if (result) {
         successCount++;
