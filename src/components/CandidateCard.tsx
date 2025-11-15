@@ -70,14 +70,18 @@ export const CandidateCard = ({
           <p className="text-xs text-muted-foreground line-clamp-1">{candidate.company || candidate.email}</p>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-1 pt-2">
+        <div className="flex flex-wrap justify-center gap-1 pt-2 w-full">
           {(candidate.skills || []).slice(0, 3).map((skill, index) => (
-            <Badge key={index} variant="secondary" className="text-xs px-2 py-0.5">
+            <Badge 
+              key={index} 
+              variant="secondary" 
+              className="text-xs px-2 py-0.5 max-w-[calc(50%-4px)] truncate"
+            >
               {skill}
             </Badge>
           ))}
           {(candidate.skills || []).length > 3 && (
-            <Badge variant="outline" className="text-xs px-2 py-0.5">
+            <Badge variant="outline" className="text-xs px-2 py-0.5 shrink-0">
               +{(candidate.skills || []).length - 3}
             </Badge>
           )}
