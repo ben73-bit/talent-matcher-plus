@@ -8,7 +8,8 @@ import {
   Eye,
   List,
   LayoutGrid,
-  Upload, // <-- Aggiunto Upload
+  Upload,
+  Trash2, // <-- Aggiunto Trash2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
