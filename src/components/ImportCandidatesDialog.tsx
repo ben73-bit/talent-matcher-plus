@@ -83,7 +83,8 @@ export const ImportCandidatesDialog = ({ open, onOpenChange }: ImportCandidatesD
           position: row.position || undefined,
           company: row.company || undefined,
           experience_years: parseInt(row.experience_years) || undefined,
-          skills: row.skills ? (Array.isArray(row.skills) ? row.skills : row.skills.split(',').map((s: string) => s.trim())) : undefined,
+          // FIX: Use semicolon (;) as separator for skills, matching the export logic
+          skills: row.skills ? (Array.isArray(row.skills) ? row.skills : String(row.skills).split(';').map((s: string) => s.trim()).filter(s => s.length > 0)) : undefined,
           notes: row.notes || undefined,
           status: row.status || 'new',
         })).filter(c => c.first_name && c.last_name && c.email); // Filter out invalid entries
