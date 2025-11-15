@@ -5,16 +5,11 @@ import {
   Download,
   MoreVertical,
   Mail,
-  Phone,
-  MapPin,
   Eye,
-  GripVertical,
-  Upload,
-  Briefcase,
-  Calendar,
-  Hash
+  List,
+  LayoutGrid,
 } from "lucide-react";
-import { motion } from "framer-motion"; // Manteniamo motion per l'animazione del container
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import {
   Select,
@@ -45,24 +41,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useCandidates, Candidate } from "@/hooks/useCandidates";
 import { useProfile } from "@/hooks/useProfile";
 import { EmailModal } from "./EmailModal";
 import { ImportCandidatesDialog } from "./ImportCandidatesDialog";
-import { cn } from "@/lib/utils"; // Import cn utility
+import { CandidateCard } from "./CandidateCard"; // Import the new card component
+import { cn } from "@/lib/utils";
+
+type ViewMode = 'table' | 'grid';
 
 const getStatusBadge = (status: Candidate['status']) => {
   const statusMap = {
-    new: { label: 'Nuovo', variant: 'secondary' as const, className: 'bg-secondary text-secondary-foreground' },
-    contacted: { label: 'Contattato', variant: 'default' as const, className: 'bg-warning text-warning-foreground hover:bg-warning/80' },
-    interviewed: { label: 'Colloquio', variant: 'outline' as const, className: 'border-primary text-primary' },
-    hired: { label: 'Assunto', variant: 'default' as const, className: 'bg-success text-success-foreground hover:bg-success/80' },
-    rejected: { label: 'Scartato', variant: 'destructive' as const, className: 'bg-destructive text-destructive-foreground hover:bg-destructive/80' }
+    new: { label: 'Nuovo', className: 'bg-secondary text-secondary-foreground' },
+    contacted: { label: 'Contattato', className: 'bg-warning text-warning-foreground hover:bg-warning/80' },
+    interviewed: { label: 'Colloquio', className: 'border border-primary text-primary bg-transparent hover:bg-primary/10' },
+    hired: { label: 'Assunto', className: 'bg-success text-success-foreground hover:bg-success/80' },
+    rejected: { label: 'Scartato', className: 'bg-destructive text-destructive-foreground hover:bg-destructive/80' }
   };
 
   const config = statusMap[status];
   return (
-    <Badge variant={config.variant} className={config.className}>
+    <Badge className={`text-xs px-2 py-0.5 ${config.className}`}>
       {config.label}
     </Badge>
   );
@@ -70,7 +70,7 @@ const getStatusBadge = (status: Candidate['status']) => {
 
 interface CandidateItemProps {
   candidate: Candidate;
-  onViewCandidate?: (candidateId: string) => void;
+  onViewCandidate: (candidateId: string) => void;
   deleteCandidate: (id: string) => void;
   updateCandidate: (id: string, updates: any) => void;
   emailService: string;
@@ -80,15 +80,16 @@ interface CandidateItemProps {
 const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCandidate, emailService, onEmailClick }: CandidateItemProps) => {
   const initials = `${candidate.first_name[0]}${candidate.last_name[0]}`.toUpperCase();
 
+  const handleUpdateStatus = (status: Candidate['status']) => {
+    updateCandidate(candidate.id, { status });
+  };
+
   return (
     <TableRow
       key={candidate.id}
       className="cursor-pointer hover:bg-secondary/50 transition-colors"
-      onClick={() => onViewCandidate?.(candidate.id)}
     >
-      {/* Rimosso: Drag Handle Column */}
-      
-      <TableCell className="font-medium w-1/4">
+      <TableCell className="font-medium w-1/4" onClick={() => onViewCandidate(candidate.id)}>
         <div className="flex items-center space-x-3">
           <Avatar className="h-8 w-8">
             <AvatarImage src={candidate.photo_url || undefined} alt={initials} />
@@ -102,11 +103,11 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
           </div>
         </div>
       </TableCell>
-      <TableCell className="w-1/5 hidden sm:table-cell">
+      <TableCell className="w-1/5 hidden sm:table-cell" onClick={() => onViewCandidate(candidate.id)}>
         <div className="text-sm">{candidate.position || 'N/D'}</div>
         <div className="text-xs text-muted-foreground">{candidate.company || 'N/D'}</div>
       </TableCell>
-      <TableCell className="w-1/5 hidden lg:table-cell">
+      <TableCell className="w-1/5 hidden lg:table-cell" onClick={() => onViewCandidate(candidate.id)}>
         <div className="flex flex-wrap gap-1">
           {(candidate.skills || []).slice(0, 3).map((skill, index) => (
             <Badge key={index} variant="secondary" className="text-xs px-2 py-0.5">
@@ -120,7 +121,7 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
           )}
         </div>
       </TableCell>
-      <TableCell className="w-1/6">
+      <TableCell className="w-1/6" onClick={() => onViewCandidate(candidate.id)}>
         {getStatusBadge(candidate.status)}
       </TableCell>
       <TableCell className="w-1/12 text-right">
@@ -138,7 +139,7 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
-                onViewCandidate?.(candidate.id);
+                onViewCandidate(candidate.id);
               }}
             >
               <Eye className="mr-2 h-4 w-4" />
@@ -154,16 +155,17 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
               Invia Email
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'contacted' })}>
+            <DropdownMenuLabel>Aggiorna Stato</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => handleUpdateStatus('contacted')}>
               Segna come Contattato
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'interviewed' })}>
+            <DropdownMenuItem onClick={() => handleUpdateStatus('interviewed')}>
               Segna come Intervistato
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'hired' })}>
+            <DropdownMenuItem onClick={() => handleUpdateStatus('hired')}>
               Segna come Assunto
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => updateCandidate(candidate.id, { status: 'rejected' })}>
+            <DropdownMenuItem onClick={() => handleUpdateStatus('rejected')}>
               Segna come Scartato
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -175,6 +177,7 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
                 }
               }}
             >
+              <Trash2 className="mr-2 h-4 w-4" />
               Elimina
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -185,7 +188,7 @@ const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCand
 };
 
 interface CandidateListProps {
-  onViewCandidate?: (candidateId: string) => void;
+  onViewCandidate: (candidateId: string) => void;
 }
 
 export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
@@ -194,7 +197,8 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<string>("recent"); // Default to 'recent'
+  const [sortBy, setSortBy] = useState<string>("recent");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid"); // Default to grid view
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -215,12 +219,12 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
         c.position || '',
         c.company || '',
         c.experience_years || '',
-        (c.skills || []).join(';'), // Usa ; come separatore per gli array
+        (c.skills || []).join(';'),
         c.notes || '',
         c.status,
         new Date(c.created_at).toISOString()
       ])
-    ].map(row => row.map(item => `"${item}"`).join(',')).join('\n'); // Aggiunge virgolette per gestire i campi con virgole
+    ].map(row => row.map(item => `"${item}"`).join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
@@ -234,6 +238,15 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
       title: 'Esportazione completata',
       description: 'Il file CSV è stato scaricato',
     });
+  };
+
+  const handleEmailClick = (candidate: Candidate) => {
+    setSelectedCandidate(candidate);
+    setShowEmailModal(true);
+  };
+
+  const handleUpdateStatus = (id: string, status: Candidate['status']) => {
+    updateCandidate(id, { status });
   };
 
   const sortedAndFilteredCandidates = candidates
@@ -251,13 +264,11 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
     .sort((a, b) => {
       switch (sortBy) {
         case 'name':
-          // Ordine alfabetico per cognome, poi nome
           const nameA = `${a.last_name} ${a.first_name}`;
           const nameB = `${b.last_name} ${b.first_name}`;
           return nameA.localeCompare(nameB);
         case 'recent':
         default:
-          // Più recenti (Z-A)
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
     });
@@ -336,6 +347,20 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
             <SelectItem value="name">Alfabetico (A-Z)</SelectItem>
           </SelectContent>
         </Select>
+        
+        <ToggleGroup 
+          type="single" 
+          value={viewMode} 
+          onValueChange={(value: ViewMode) => value && setViewMode(value)}
+          className="shrink-0"
+        >
+          <ToggleGroupItem value="grid" aria-label="Visualizzazione Griglia" className="h-10 w-10 p-2">
+            <LayoutGrid className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="table" aria-label="Visualizzazione Tabella" className="h-10 w-10 p-2">
+            <List className="h-4 w-4" />
+          </ToggleGroupItem>
+        </ToggleGroup>
       </motion.div>
 
       {loading && (
@@ -359,35 +384,48 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
       )}
 
       {!loading && sortedAndFilteredCandidates.length > 0 && (
-        <Card className="shadow-soft border-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-secondary/50 hover:bg-secondary/50">
-                <TableHead className="w-1/4">Candidato</TableHead>
-                <TableHead className="w-1/5 hidden sm:table-cell">Posizione/Azienda</TableHead>
-                <TableHead className="w-1/5 hidden lg:table-cell">Competenze</TableHead>
-                <TableHead className="w-1/6">Stato</TableHead>
-                <TableHead className="w-1/12 text-right">Azioni</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedAndFilteredCandidates.map((candidate) => (
-                <CandidateItem
-                  key={candidate.id}
-                  candidate={candidate}
-                  onViewCandidate={onViewCandidate}
-                  deleteCandidate={deleteCandidate}
-                  updateCandidate={updateCandidate}
-                  emailService={profile?.email_service || 'outlook'}
-                  onEmailClick={(candidate) => {
-                    setSelectedCandidate(candidate);
-                    setShowEmailModal(true);
-                  }}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+        viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {sortedAndFilteredCandidates.map((candidate) => (
+              <CandidateCard
+                key={candidate.id}
+                candidate={candidate}
+                emailService={profile?.email_service || 'outlook'}
+                onViewCandidate={onViewCandidate}
+                onEmailClick={handleEmailClick}
+                onDelete={deleteCandidate}
+                onUpdateStatus={handleUpdateStatus}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card className="shadow-soft border-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-secondary/50 hover:bg-secondary/50">
+                  <TableHead className="w-1/4">Candidato</TableHead>
+                  <TableHead className="w-1/5 hidden sm:table-cell">Posizione/Azienda</TableHead>
+                  <TableHead className="w-1/5 hidden lg:table-cell">Competenze</TableHead>
+                  <TableHead className="w-1/6">Stato</TableHead>
+                  <TableHead className="w-1/12 text-right">Azioni</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedAndFilteredCandidates.map((candidate) => (
+                  <CandidateItem
+                    key={candidate.id}
+                    candidate={candidate}
+                    onViewCandidate={onViewCandidate}
+                    deleteCandidate={deleteCandidate}
+                    updateCandidate={updateCandidate}
+                    emailService={profile?.email_service || 'outlook'}
+                    onEmailClick={handleEmailClick}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        )
       )}
 
       <Dialog open={showAdvancedFilters} onOpenChange={setShowAdvancedFilters}>
