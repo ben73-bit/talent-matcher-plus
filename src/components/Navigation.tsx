@@ -9,15 +9,16 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useTheme } from "next-themes";
 
 interface NavigationProps {
   onProfileClick?: () => void;
@@ -27,23 +28,12 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const { notifications, unreadCount, markAsRead } = useNotifications();
-  // Rimosso: const { acceptInvitation } = useDatabases();
+  const { setTheme } = useTheme();
   const [showNotifications, setShowNotifications] = useState(false);
 
   const handleMarkAsRead = async (id: string) => {
     await markAsRead(id);
   };
-
-  // Rimosso: handleAcceptInvitation
-  /*
-  const handleAcceptInvitation = async (notificationId: string, invitationId: string) => {
-    const success = await acceptInvitation(invitationId);
-    if (success) {
-      await markAsRead(notificationId);
-      setShowNotifications(false);
-    }
-  };
-  */
 
   const formatTime = (dateString: string) => {
     try {
@@ -62,6 +52,12 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
         variant: 'destructive',
       });
     } else {
+      // 1. Reset theme to default (light)
+      setTheme('light'); 
+      // 2. Explicitly remove the theme preference from localStorage 
+      // to ensure the login screen defaults correctly on next-themes initialization.
+      localStorage.removeItem('theme');
+      
       toast({
         title: 'Logout effettuato',
         description: 'A presto!',
@@ -80,17 +76,6 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
             <span className="text-xl font-bold text-foreground">TalentHub</span>
           </div>
         </div>
-
-        {/* Search Rimosso */}
-        {/* <div className="flex-1 max-w-md mx-8">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Cerca candidati, posizioni, competenze..."
-              className="pl-10 bg-secondary/50 border-0 focus-visible:bg-card transition-fast"
-            />
-          </div>
-        </div> */}
 
         {/* Actions */}
         <div className="flex items-center space-x-4">
@@ -174,27 +159,6 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
                     <p className="text-xs text-muted-foreground mt-2">{formatTime(notification.created_at)}</p>
-                    
-                    {/* Rimosso: Logica di accettazione invito */}
-                    {/* {notification.type === 'database_invitation' && notification.data?.invitation_id && !notification.read && (
-                      <div className="flex gap-2 mt-3">
-                        <Button
-                          size="sm"
-                          onClick={() => handleAcceptInvitation(notification.id, notification.data.invitation_id)}
-                          className="flex items-center gap-1"
-                        >
-                          <Check className="h-3 w-3" />
-                          Accetta
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleMarkAsRead(notification.id)}
-                        >
-                          Ignora
-                        </Button>
-                      </div>
-                    )} */}
                     
                     {!notification.read && (
                       <Button
