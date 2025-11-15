@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { useCandidates, CreateCandidateData } from '@/hooks/useCandidates';
+import { useCandidates, CreateCandidateData, Candidate } from '@/hooks/useCandidates';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -74,25 +74,39 @@ export const ImportCandidatesDialog = ({ open, onOpenChange }: ImportCandidatesD
           return;
         }
 
+        // Helper to ensure optional string fields are undefined if empty/null
+        const getOptionalString = (value: any) => {
+          const str = String(value || '').trim();
+          return str.length > 0 ? str : undefined;
+        };
+
         // Map and clean data
         const candidatesToImport: CreateCandidateData[] = data.map(row => {
           const expValue = parseInt(row.experience_years);
           
           return {
-            first_name: row.first_name || '',
-            last_name: row.last_name || '',
-            email: row.email || '',
-            phone: row.phone || undefined,
-            position: row.position || undefined,
-            company: row.company || undefined,
-            // FIX: Ensure 0 is not treated as undefined/null
+            // Required fields (coerced to string)
+            first_name: String(row.first_name || '').trim(),
+            last_name: String(row.last_name || '').trim(),
+            email: String(row.email || '').trim(),
+            
+            // Optional fields (mapped to undefined if empty)
+            phone: getOptionalString(row.phone),
+            position: getOptionalString(row.position),
+            company: getOptionalString(row.company),
+            
+            // Experience years (number or undefined)
             experience_years: !isNaN(expValue) ? expValue : undefined,
-            // Skills parsing uses semicolon (;)
+            
+            // Skills (array of strings or undefined)
             skills: row.skills ? (Array.isArray(row.skills) ? row.skills : String(row.skills).split(';').map((s: string) => s.trim()).filter(s => s.length > 0)) : undefined,
-            notes: row.notes || undefined,
-            status: row.status || 'new',
+            
+            notes: getOptionalString(row.notes),
+            
+            // Status (defaults to 'new' if empty/invalid)
+            status: getOptionalString(row.status) as Candidate['status'] || 'new',
           };
-        }).filter(c => c.first_name && c.last_name && c.email); // Filter out invalid entries
+        }).filter(c => c.first_name.length > 0 && c.last_name.length > 0 && c.email.length > 0); // Filter out invalid entries
 
         setParsedData(candidatesToImport);
         setImportStatus('ready');
@@ -131,6 +145,9 @@ export const ImportCandidatesDialog = ({ open, onOpenChange }: ImportCandidatesD
     let errorCount = 0;
 
     for (const candidateData of parsedData) {
+      // We need to ensure that createCandidate doesn't throw an unhandled exception
+      // that stops the loop or causes the toast spam.
+      // The useCandidates hook already handles errors internally and returns null on failure.
       const result = await createCandidate(candidateData);
       if (result) {
         successCount++;
