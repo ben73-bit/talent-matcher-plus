@@ -75,19 +75,24 @@ export const ImportCandidatesDialog = ({ open, onOpenChange }: ImportCandidatesD
         }
 
         // Map and clean data
-        const candidatesToImport: CreateCandidateData[] = data.map(row => ({
-          first_name: row.first_name || '',
-          last_name: row.last_name || '',
-          email: row.email || '',
-          phone: row.phone || undefined,
-          position: row.position || undefined,
-          company: row.company || undefined,
-          experience_years: parseInt(row.experience_years) || undefined,
-          // FIX: Use semicolon (;) as separator for skills, matching the export logic
-          skills: row.skills ? (Array.isArray(row.skills) ? row.skills : String(row.skills).split(';').map((s: string) => s.trim()).filter(s => s.length > 0)) : undefined,
-          notes: row.notes || undefined,
-          status: row.status || 'new',
-        })).filter(c => c.first_name && c.last_name && c.email); // Filter out invalid entries
+        const candidatesToImport: CreateCandidateData[] = data.map(row => {
+          const expValue = parseInt(row.experience_years);
+          
+          return {
+            first_name: row.first_name || '',
+            last_name: row.last_name || '',
+            email: row.email || '',
+            phone: row.phone || undefined,
+            position: row.position || undefined,
+            company: row.company || undefined,
+            // FIX: Ensure 0 is not treated as undefined/null
+            experience_years: !isNaN(expValue) ? expValue : undefined,
+            // Skills parsing uses semicolon (;)
+            skills: row.skills ? (Array.isArray(row.skills) ? row.skills : String(row.skills).split(';').map((s: string) => s.trim()).filter(s => s.length > 0)) : undefined,
+            notes: row.notes || undefined,
+            status: row.status || 'new',
+          };
+        }).filter(c => c.first_name && c.last_name && c.email); // Filter out invalid entries
 
         setParsedData(candidatesToImport);
         setImportStatus('ready');
