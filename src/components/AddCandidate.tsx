@@ -51,7 +51,7 @@ interface AddCandidateProps {
 export const AddCandidate = ({ onBack }: AddCandidateProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, session } = useAuth(); // <-- Ottieni la sessione qui
   const { profile } = useProfile(); // Ottieni il profilo
   const { createCandidate, candidates } = useCandidates();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -153,15 +153,15 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
       const formDataToSend = new FormData();
       formDataToSend.append('file', file);
       
-      // *** MODIFICA: Usa fetch diretto invece di supabase.functions.invoke ***
+      // Usa l'access_token dalla sessione ottenuta tramite useAuth
+      const accessToken = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-cv`,
         {
           method: 'POST',
           headers: {
-            // Non impostare Content-Type per FormData, il browser lo fa automaticamente
-            // e include il boundary corretto.
-            Authorization: `Bearer ${supabase.auth.session()?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${accessToken}`,
           },
           body: formDataToSend,
         }
