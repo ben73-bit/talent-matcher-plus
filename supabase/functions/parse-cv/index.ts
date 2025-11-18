@@ -82,8 +82,7 @@ ISTRUZIONI:
 2. Estrai le informazioni in modo accurato e completo
 3. Per le competenze (skills), includi sia hard skills che soft skills rilevanti
 4. Per le note, crea un riassunto ben strutturato e informativo
-5. Se un'informazione non è disponibile, usa una stringa vuota "" o array vuoto []
-6. Rispondi SOLO con un oggetto JSON valido, senza altre spiegazioni. Assicurati che l'output sia un JSON valido e completo.
+5. Rispondi SOLO con un oggetto JSON valido, senza altre spiegazioni. Assicurati che l'output sia un JSON valido e completo.
 
 Formato JSON di output:
 {
@@ -109,8 +108,6 @@ Formato JSON di output:
             generationConfig: {
               temperature: 0.1,
               maxOutputTokens: 2000,
-              // Aggiunto responseMimeType per forzare l'output JSON (se supportato dal modello)
-              // Se il modello non supporta responseMimeType, ci affidiamo al prompt
             }
           }),
         });
@@ -128,7 +125,7 @@ Formato JSON di output:
           const extractedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
           
           if (!extractedText) {
-             console.error('Google AI response missing extracted text.');
+             console.error('Google AI response missing extracted text or candidates.');
              const textContent = await extractTextFromPDF(arrayBuffer);
              parsedData = await fallbackParsing(textContent, file.name);
           } else {
@@ -136,9 +133,24 @@ Formato JSON di output:
 
             // Parse the JSON response from Google AI
             try {
-              // Clean up the response to ensure it's valid JSON
-              const cleanedText = extractedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-              parsedData = JSON.parse(cleanedText);
+              // Use regex to find the JSON block, even if wrapped in markdown fences
+              const jsonMatch = extractedText.match(/```json\s*([\s\S]*?)\s*```/i);
+              let jsonString = jsonMatch ? jsonMatch[1] : extractedText;
+              
+              // Attempt to clean up common issues if no markdown fences were found
+              if (!jsonMatch) {
+                  jsonString = jsonString.replace(/```/g, '').trim();
+              }
+
+              parsedData = JSON.parse(jsonString);
+              
+              // Final validation: ensure required fields are not empty strings if they were extracted
+              if (parsedData && typeof parsedData === 'object') {
+                  parsedData.firstName = parsedData.firstName || '';
+                  parsedData.lastName = parsedData.lastName || '';
+                  parsedData.email = parsedData.email || '';
+              }
+
             } catch (parseError) {
               console.error('Error parsing Google AI response:', parseError);
               console.error('Response text:', extractedText);
@@ -228,7 +240,7 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
   }
 }
 
-// Fallback parsing when OpenAI is not available or has errors
+// Fallback parsing when AI is not available or has errors
 async function fallbackParsing(textContent: string, fileName: string): Promise<any> {
   console.log('Using fallback parsing for file:', fileName);
   
