@@ -37,6 +37,24 @@ async function runDiagnosticTest(apiKey: string) {
   console.log('Diagnostic Test Successful. Proceeding with CV parsing.');
 }
 
+/**
+ * Codifica un Uint8Array in una stringa Base64 in modo robusto, gestendo array di grandi dimensioni.
+ * @param bytes Uint8Array del file binario.
+ * @returns Stringa Base64.
+ */
+function base64Encode(bytes: Uint8Array): string {
+  let binary = '';
+  const len = bytes.byteLength;
+  // Chunk size to prevent stack overflow on String.fromCharCode.apply
+  const chunkSize = 16384; 
+
+  for (let i = 0; i < len; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
+    binary += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  return btoa(binary);
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -59,9 +77,8 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
     
-    // Convert to base64 using a reliable method for binary data
-    const binString = Array.from(bytes, (byte) => String.fromCodePoint(byte)).join("");
-    const base64String = btoa(binString);
+    // *** Utilizza la funzione di codifica Base64 robusta ***
+    const base64String = base64Encode(bytes);
 
     console.log('File converted to base64, length:', base64String.length);
 
