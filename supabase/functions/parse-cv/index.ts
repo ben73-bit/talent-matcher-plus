@@ -10,6 +10,33 @@ const corsHeaders = {
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
+/**
+ * Esegue un semplice test di connettività all'API di Google AI.
+ * @param apiKey La chiave API di Google AI.
+ * @throws {Error} Se la connessione o la chiave API non sono valide.
+ */
+async function runDiagnosticTest(apiKey: string) {
+  console.log('Running Google AI connectivity diagnostic test...');
+  
+  const testResponse = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: "Say 'OK'" }] }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 5 },
+    }),
+  });
+
+  if (!testResponse.ok) {
+    const errorBody = await testResponse.text();
+    console.error('Diagnostic Test Failed. Status:', testResponse.status, 'Body:', errorBody);
+    throw new Error(`Connessione API Google AI fallita (Status ${testResponse.status}). Verifica la validità della chiave API e le restrizioni di rete/fatturazione.`);
+  }
+  console.log('Diagnostic Test Successful. Proceeding with CV parsing.');
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -48,6 +75,10 @@ serve(async (req) => {
       const textContent = await extractTextFromPDF(arrayBuffer);
       parsedData = await fallbackParsing(textContent, file.name);
     } else {
+      // --- DIAGNOSTIC CHECK ---
+      await runDiagnosticTest(googleAIApiKey);
+      // ------------------------
+      
       try {
         console.log(`Sending PDF to Google AI (${GEMINI_MODEL}) for analysis`);
 
@@ -99,7 +130,7 @@ Formato JSON di output:
                 },
                 {
                   inlineData: {
-                    mimeType: 'application/pdf', // <-- FORZATO A application/pdf
+                    mimeType: 'application/pdf',
                     data: base64String
                   }
                 }
@@ -114,8 +145,8 @@ Formato JSON di output:
 
         if (!response.ok) {
           const error = await response.text();
-          console.error('Google AI API error:', error);
-          console.log('Falling back to manual parsing due to Google AI API error');
+          console.error('Google AI API error during PDF parsing:', error);
+          console.log('Falling back to manual parsing due to PDF parsing error');
           const textContent = await extractTextFromPDF(arrayBuffer);
           parsedData = await fallbackParsing(textContent, file.name);
         } else {
@@ -161,7 +192,7 @@ Formato JSON di output:
           }
         }
       } catch (error) {
-        console.error('Error with Google AI request:', error);
+        console.error('Error with Google AI request (during PDF parsing):', error);
         console.log('Falling back to manual parsing');
         const textContent = await extractTextFromPDF(arrayBuffer);
         parsedData = await fallbackParsing(textContent, file.name);
@@ -179,6 +210,17 @@ Formato JSON di output:
 
   } catch (error) {
     console.error('Error in parse-cv function:', error);
+    // If the error is from the diagnostic test, return it clearly
+    if (error instanceof Error && error.message.includes('Connessione API Google AI fallita')) {
+        return new Response(JSON.stringify({
+            success: false,
+            error: error.message
+        }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+    }
+    
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
