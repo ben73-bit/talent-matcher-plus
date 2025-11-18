@@ -12,6 +12,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from 'next-themes';
 import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge'; // Aggiunto Badge
 
 export const ProfilePage = () => {
   const navigate = useNavigate();
