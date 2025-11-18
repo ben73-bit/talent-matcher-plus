@@ -9,7 +9,8 @@ import {
   FileText,
   Sparkles,
   ArrowLeft,
-  AlertTriangle
+  AlertTriangle,
+  Settings, // Aggiunto Settings per l'icona
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
@@ -39,15 +40,19 @@ import {
 } from "@/components/ui/select";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile"; // Importato useProfile
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom"; // Importato useNavigate per reindirizzare alle impostazioni
 
 interface AddCandidateProps {
   onBack: () => void;
 }
 
 export const AddCandidate = ({ onBack }: AddCandidateProps) => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { profile } = useProfile(); // Ottieni il profilo
   const { createCandidate, candidates } = useCandidates();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,6 +77,9 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
     notes: "",
     // databaseId: "" Rimosso
   });
+
+  // Check if AI keys are configured
+  const isAIConfigured = !!profile?.openai_api_key || !!profile?.google_ai_api_key;
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -114,6 +122,15 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isAIConfigured) {
+      toast({
+        title: "Configurazione AI mancante",
+        description: "Per analizzare il CV, devi configurare le chiavi API nelle Impostazioni.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -133,12 +150,12 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
       console.log('Starting CV analysis with file:', file.name);
       
       // Create FormData to send the file
-      const formData = new FormData();
-      formData.append('file', file);
+      const formDataToSend = new FormData();
+      formDataToSend.append('file', file);
       
       // Call the Supabase edge function
       const { data, error } = await supabase.functions.invoke('parse-cv', {
-        body: formData,
+        body: formDataToSend,
       });
       
       if (error) {
@@ -349,9 +366,34 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {!isAIConfigured && (
+              <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg space-y-3">
+                <div className="flex items-center text-destructive text-sm font-medium">
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  Configurazione AI Obbligatoria
+                </div>
+                <p className="text-sm text-destructive/90">
+                  Per utilizzare l'analisi automatica del CV, devi configurare almeno una chiave API (OpenAI o Google AI) nelle impostazioni.
+                </p>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={() => navigate('/settings')}
+                  className="w-full"
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Vai alle Impostazioni
+                </Button>
+              </div>
+            )}
+
             <div className="text-center">
-              <div className="border-2 border-dashed border-border rounded-lg p-8 hover:border-primary/50 transition-fast">
-                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <div className={`border-2 border-dashed rounded-lg p-8 transition-fast ${
+                isAIConfigured 
+                  ? 'border-border hover:border-primary/50' 
+                  : 'border-muted-foreground/30 bg-muted/20 cursor-not-allowed'
+              }`}>
+                <Upload className={`h-12 w-12 mx-auto mb-4 ${isAIConfigured ? 'text-muted-foreground' : 'text-muted-foreground/50'}`} />
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Carica CV PDF</p>
                   <p className="text-xs text-muted-foreground">
@@ -363,15 +405,15 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
                     onChange={handleFileUpload}
                     className="hidden"
                     id="cv-upload"
-                    disabled={isProcessing}
+                    disabled={isProcessing || !isAIConfigured}
                   />
                   <Button
                     asChild
                     variant="outline"
-                    disabled={isProcessing}
+                    disabled={isProcessing || !isAIConfigured}
                     className="mt-2"
                   >
-                    <label htmlFor="cv-upload" className="cursor-pointer">
+                    <label htmlFor="cv-upload" className={`cursor-pointer ${!isAIConfigured ? 'opacity-50 cursor-not-allowed' : ''}`}>
                       {isProcessing ? "Elaborazione..." : "Seleziona File"}
                     </label>
                   </Button>
@@ -584,30 +626,6 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
                   rows={4}
                 />
               </div>
-
-              {/* Rimosso: Database Selection */}
-              {/* <div className="space-y-2">
-                <Label htmlFor="database">Database (Opzionale)</Label>
-                <Select 
-                  value={formData.databaseId || "none"}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, databaseId: value === "none" ? "" : value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona un database" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nessun database</SelectItem>
-                    {ownDatabases.map((db) => (
-                      <SelectItem key={db.id} value={db.id}>
-                        {db.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Assegna il candidato a un database per condividerlo con i collaboratori
-                </p>
-              </div> */}
 
               <div className="flex justify-end space-x-4 pt-4">
                 <Button type="button" variant="outline" onClick={onBack}>
