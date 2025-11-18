@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Camera, Save, Loader2, Sun, Moon, Bell, BellOff } from 'lucide-react';
+import { ArrowLeft, Camera, Save, Loader2, Sun, Moon, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,8 +22,9 @@ export const ProfilePage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [emailNotifications, setEmailNotifications] = useState(profile?.email_notifications ?? true);
   
+  // Rimosso lo stato emailNotifications
+
   const [formData, setFormData] = useState({
     first_name: profile?.first_name || '',
     last_name: profile?.last_name || '',
@@ -37,9 +38,7 @@ export const ProfilePage = () => {
     if (profile?.theme && theme !== profile.theme) {
       setTheme(profile.theme);
     }
-    if (profile?.email_notifications !== undefined) {
-      setEmailNotifications(profile.email_notifications);
-    }
+    // Rimosso l'aggiornamento di emailNotifications
   }, [profile, setTheme]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,7 +64,7 @@ export const ProfilePage = () => {
     setIsSaving(true);
     await updateProfile({
       ...formData,
-      email_notifications: emailNotifications,
+      // Rimosso email_notifications dall'aggiornamento
       theme: theme || 'light',
     });
     setIsSaving(false);
@@ -78,10 +77,7 @@ export const ProfilePage = () => {
     await updateProfile({ theme: newTheme });
   };
 
-  const handleNotificationsToggle = async (checked: boolean) => {
-    setEmailNotifications(checked);
-    await updateProfile({ email_notifications: checked });
-  };
+  // Rimosso handleNotificationsToggle
 
   const handleCancel = () => {
     setFormData({
@@ -296,25 +292,18 @@ export const ProfilePage = () => {
             </Button>
           </div>
 
-          {/* Email Notifications */}
+          {/* Email Notifications (Always Active) */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label className="text-base flex items-center gap-2">
-                {emailNotifications ? (
-                  <Bell className="h-4 w-4" />
-                ) : (
-                  <BellOff className="h-4 w-4" />
-                )}
+                <Bell className="h-4 w-4 text-primary" />
                 Notifiche Email
               </Label>
               <p className="text-sm text-muted-foreground">
-                Ricevi notifiche via email per gli aggiornamenti
+                Ricevi notifiche via email per gli aggiornamenti (Sempre Attivo)
               </p>
             </div>
-            <Switch
-              checked={emailNotifications}
-              onCheckedChange={handleNotificationsToggle}
-            />
+            <Badge variant="default" className="bg-success hover:bg-success">Attivo</Badge>
           </div>
         </CardContent>
       </Card>
@@ -329,6 +318,6 @@ export const ProfilePage = () => {
       )}
     </div>
   );
-}
+};
 
 export default ProfilePage;
