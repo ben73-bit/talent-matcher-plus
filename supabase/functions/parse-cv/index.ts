@@ -129,7 +129,7 @@ ISTRUZIONI:
 1. Leggi attentamente tutto il contenuto del CV
 2. Estrai le informazioni in modo accurato e completo
 3. Per le competenze (skills), includi sia hard skills che soft skills rilevanti
-4. Per le note, crea un riassunto ben strutturato e informativo. **IMPORTANTE: Assicurati che il contenuto del campo 'notes' sia una singola stringa JSON valida, escapando tutti i caratteri di newline (\\n) e le doppie virgolette interne (\\")**.
+4. Per le note, crea un riassunto ben strutturato e informativo.
 5. Rispondi SOLO con un oggetto JSON valido, senza altre spiegazioni. Assicurati che l'output sia un JSON valido e completo.
 
 Formato JSON di output:
