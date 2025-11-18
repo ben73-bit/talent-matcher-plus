@@ -32,7 +32,7 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
     
-    // Convert to base64 using a more reliable method
+    // Convert to base64 using a reliable method for binary data
     const binString = Array.from(bytes, (byte) => String.fromCodePoint(byte)).join("");
     const base64String = btoa(binString);
 
@@ -99,7 +99,7 @@ Formato JSON di output:
                 },
                 {
                   inlineData: {
-                    mimeType: file.type,
+                    mimeType: 'application/pdf', // <-- FORZATO A application/pdf
                     data: base64String
                   }
                 }
