@@ -153,20 +153,25 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
       const formDataToSend = new FormData();
       formDataToSend.append('file', file);
       
-      // Call the Supabase edge function
-      const { data, error } = await supabase.functions.invoke('parse-cv', {
-        body: formDataToSend,
-      });
+      // *** MODIFICA: Usa fetch diretto invece di supabase.functions.invoke ***
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-cv`,
+        {
+          method: 'POST',
+          headers: {
+            // Non impostare Content-Type per FormData, il browser lo fa automaticamente
+            // e include il boundary corretto.
+            Authorization: `Bearer ${supabase.auth.session()?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: formDataToSend,
+        }
+      );
+
+      const data = await response.json();
       
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw new Error('Errore nella chiamata al servizio di parsing');
-      }
-      
-      console.log('Response from parse-cv:', data);
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Errore nell\'analisi del CV');
+      if (!response.ok || !data.success) {
+        // Se la risposta HTTP non è OK, o se la funzione Edge restituisce success: false
+        throw new Error(data.error || `Errore HTTP ${response.status} durante l'analisi del CV.`);
       }
       
       const extractedData = data.data;
