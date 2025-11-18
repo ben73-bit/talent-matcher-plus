@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Settings, User, Search, LogOut, X, Check } from "lucide-react";
+import { Bell, Settings, User, Search, LogOut, X, Check, Sun, Moon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { it } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useTheme } from "next-themes";
+import { useProfile } from "@/hooks/useProfile"; // Importato useProfile
 
 interface NavigationProps {
   onProfileClick?: () => void;
@@ -28,7 +29,8 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const { notifications, unreadCount, markAsRead } = useNotifications();
-  const { setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const { updateProfile } = useProfile(); // Ottieni la funzione per aggiornare il profilo
   const [showNotifications, setShowNotifications] = useState(false);
 
   const handleMarkAsRead = async (id: string) => {
@@ -41,6 +43,13 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
     } catch {
       return dateString;
     }
+  };
+
+  const handleThemeToggle = async () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    // Salva la preferenza nel profilo utente
+    await updateProfile({ theme: newTheme });
   };
 
   const handleSignOut = async () => {
@@ -79,6 +88,20 @@ export const Navigation = ({ onProfileClick }: NavigationProps) => {
 
         {/* Actions */}
         <div className="flex items-center space-x-4">
+          {/* Theme Toggle Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleThemeToggle}
+            className="h-8 w-8 p-0"
+          >
+            {theme === 'dark' ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
+          </Button>
+
           <Button 
             variant="outline" 
             size="sm" 

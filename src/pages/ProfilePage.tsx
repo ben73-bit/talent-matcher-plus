@@ -24,8 +24,6 @@ export const ProfilePage = () => {
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
-  // Rimosso lo stato emailNotifications
-
   const [formData, setFormData] = useState({
     first_name: profile?.first_name || '',
     last_name: profile?.last_name || '',
@@ -36,10 +34,10 @@ export const ProfilePage = () => {
   });
 
   useEffect(() => {
+    // Ensure theme is synchronized on load if profile has a preference
     if (profile?.theme && theme !== profile.theme) {
       setTheme(profile.theme);
     }
-    // Rimosso l'aggiornamento di emailNotifications
   }, [profile, setTheme]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,20 +63,13 @@ export const ProfilePage = () => {
     setIsSaving(true);
     await updateProfile({
       ...formData,
-      // Rimosso email_notifications dall'aggiornamento
-      theme: theme || 'light',
+      theme: theme || 'light', // Save current theme preference
     });
     setIsSaving(false);
     setIsEditing(false);
   };
 
-  const handleThemeToggle = async () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    await updateProfile({ theme: newTheme });
-  };
-
-  // Rimosso handleNotificationsToggle
+  // Rimosso handleThemeToggle
 
   const handleCancel = () => {
     setFormData({
@@ -271,28 +262,6 @@ export const ProfilePage = () => {
           <CardDescription>Personalizza la tua esperienza</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Theme Toggle */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label className="text-base">Tema</Label>
-              <p className="text-sm text-muted-foreground">
-                Scegli tra tema chiaro o scuro
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleThemeToggle}
-              className="h-10 w-10"
-            >
-              {theme === 'dark' ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
-
           {/* Email Notifications (Always Active) */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
