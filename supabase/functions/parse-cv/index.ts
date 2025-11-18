@@ -32,7 +32,7 @@ async function runDiagnosticTest(apiKey: string) {
   if (!testResponse.ok) {
     const errorBody = await testResponse.text();
     console.error('Diagnostic Test Failed. Status:', testResponse.status, 'Body:', errorBody);
-    throw new Error(`Connessione API Google AI fallita (Status ${testResponse.status}). Verifica la validità della chiave API e le restrizioni di rete/fatturazione.`);
+    throw new Error(`Connessione API Google AI fallita (Status ${testResponse.status}). Verifica la validità della chiave API e le restrizioni di rete/fatturazione. Dettagli: ${errorBody.substring(0, 100)}...`);
   }
   console.log('Diagnostic Test Successful. Proceeding with CV parsing.');
 }
@@ -77,7 +77,6 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
     
-    // *** Utilizza la funzione di codifica Base64 robusta ***
     const base64String = base64Encode(bytes);
 
     console.log('File converted to base64, length:', base64String.length);
@@ -161,11 +160,10 @@ Formato JSON di output:
         });
 
         if (!response.ok) {
-          const error = await response.text();
-          console.error('Google AI API error during PDF parsing:', error);
-          console.log('Falling back to manual parsing due to PDF parsing error');
-          const textContent = await extractTextFromPDF(arrayBuffer);
-          parsedData = await fallbackParsing(textContent, file.name);
+          const errorBody = await response.text();
+          console.error('Google AI API error during PDF parsing:', errorBody);
+          // NON usiamo il fallback qui. Lanciamo l'errore per la diagnostica.
+          throw new Error(`Errore API Gemini durante l'analisi del PDF. Status: ${response.status}. Dettagli: ${errorBody.substring(0, 200)}...`);
         } else {
           const data = await response.json();
           console.log('Google AI response received');
@@ -174,8 +172,8 @@ Formato JSON di output:
           
           if (!extractedText) {
              console.error('Google AI response missing extracted text or candidates.');
-             const textContent = await extractTextFromPDF(arrayBuffer);
-             parsedData = await fallbackParsing(textContent, file.name);
+             // Se la risposta è 200 ma manca il testo, è un errore di generazione AI.
+             throw new Error('L\'AI non ha restituito dati estratti. Il CV potrebbe essere illeggibile o il prompt non è stato soddisfatto.');
           } else {
             console.log('Extracted text from Google AI:', extractedText);
 
@@ -202,17 +200,13 @@ Formato JSON di output:
             } catch (parseError) {
               console.error('Error parsing Google AI response:', parseError);
               console.error('Response text:', extractedText);
-              console.log('Falling back to manual parsing due to parsing error');
-              const textContent = await extractTextFromPDF(arrayBuffer);
-              parsedData = await fallbackParsing(textContent, file.name);
+              throw new Error(`L'AI ha restituito un formato non JSON valido. Dettagli: ${extractedText.substring(0, 100)}...`);
             }
           }
         }
       } catch (error) {
         console.error('Error with Google AI request (during PDF parsing):', error);
-        console.log('Falling back to manual parsing');
-        const textContent = await extractTextFromPDF(arrayBuffer);
-        parsedData = await fallbackParsing(textContent, file.name);
+        throw error; // Rilancia l'errore
       }
     }
 
@@ -227,20 +221,24 @@ Formato JSON di output:
 
   } catch (error) {
     console.error('Error in parse-cv function:', error);
-    // If the error is from the diagnostic test, return it clearly
-    if (error instanceof Error && error.message.includes('Connessione API Google AI fallita')) {
-        return new Response(JSON.stringify({
-            success: false,
-            error: error.message
-        }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+    
+    // Gestione degli errori per il client
+    let errorMessage = 'Errore sconosciuto durante l\'analisi del CV.';
+    if (error instanceof Error) {
+        errorMessage = error.message;
     }
     
+    // Se l'errore contiene i dettagli dell'API, lo passiamo direttamente
+    if (errorMessage.includes('Errore API Gemini') || errorMessage.includes('Connessione API Google AI fallita') || errorMessage.includes('L\'AI non ha restituito dati')) {
+        // Passa l'errore specifico al client
+    } else {
+        // Per tutti gli altri errori (es. file non fornito, errore di parsing locale)
+        errorMessage = `Errore interno: ${errorMessage}`;
+    }
+
     return new Response(JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: errorMessage
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
