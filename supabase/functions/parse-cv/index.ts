@@ -98,7 +98,7 @@ serve(async (req) => {
       try {
         console.log(`Sending PDF to Google AI (${GEMINI_MODEL}) for analysis`);
 
-        const response = await fetch(`${GEMINI_API_URL}?key=${googleAIApiKey}`, {
+        const response = await fetch(`${GEMINI_API_URL}?key={googleAIApiKey}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -162,7 +162,6 @@ Formato JSON di output:
         if (!response.ok) {
           const errorBody = await response.text();
           console.error('Google AI API error during PDF parsing:', errorBody);
-          // NON usiamo il fallback qui. Lanciamo l'errore per la diagnostica.
           throw new Error(`Errore API Gemini durante l'analisi del PDF. Status: ${response.status}. Dettagli: ${errorBody.substring(0, 200)}...`);
         } else {
           const data = await response.json();
@@ -172,20 +171,28 @@ Formato JSON di output:
           
           if (!extractedText) {
              console.error('Google AI response missing extracted text or candidates.');
-             // Se la risposta è 200 ma manca il testo, è un errore di generazione AI.
              throw new Error('L\'AI non ha restituito dati estratti. Il CV potrebbe essere illeggibile o il prompt non è stato soddisfatto.');
           } else {
             console.log('Extracted text from Google AI:', extractedText);
 
             // Parse the JSON response from Google AI
             try {
-              // Use regex to find the JSON block, even if wrapped in markdown fences
+              // 1. Use regex to find the JSON block, handling various markdown fences (non-greedy)
               const jsonMatch = extractedText.match(/```json\s*([\s\S]*?)\s*```/i);
               let jsonString = jsonMatch ? jsonMatch[1] : extractedText;
               
-              // Attempt to clean up common issues if no markdown fences were found
-              if (!jsonMatch) {
-                  jsonString = jsonString.replace(/```/g, '').trim();
+              // 2. Aggressively strip any remaining markdown fences or surrounding text
+              jsonString = jsonString.replace(/```/g, '').trim();
+              
+              // 3. Attempt to find the first '{' and the last '}' to isolate the JSON object
+              const firstBrace = jsonString.indexOf('{');
+              const lastBrace = jsonString.lastIndexOf('}');
+
+              if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                  jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+              } else if (firstBrace === -1 || lastBrace === -1) {
+                  // If braces are missing, the output is fundamentally broken
+                  throw new Error("Output does not contain valid JSON braces.");
               }
 
               parsedData = JSON.parse(jsonString);
