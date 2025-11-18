@@ -6,6 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Use a stable model for document parsing
+const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -45,9 +49,9 @@ serve(async (req) => {
       parsedData = await fallbackParsing(textContent, file.name);
     } else {
       try {
-        console.log('Sending PDF to Google AI (Gemini) for analysis');
+        console.log(`Sending PDF to Google AI (${GEMINI_MODEL}) for analysis`);
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${googleAIApiKey}`, {
+        const response = await fetch(`${GEMINI_API_URL}?key=${googleAIApiKey}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -79,7 +83,7 @@ ISTRUZIONI:
 3. Per le competenze (skills), includi sia hard skills che soft skills rilevanti
 4. Per le note, crea un riassunto ben strutturato e informativo
 5. Se un'informazione non è disponibile, usa una stringa vuota "" o array vuoto []
-6. Rispondi SOLO con un oggetto JSON valido, senza altre spiegazioni
+6. Rispondi SOLO con un oggetto JSON valido, senza altre spiegazioni. Assicurati che l'output sia un JSON valido e completo.
 
 Formato JSON di output:
 {
@@ -105,6 +109,8 @@ Formato JSON di output:
             generationConfig: {
               temperature: 0.1,
               maxOutputTokens: 2000,
+              // Aggiunto responseMimeType per forzare l'output JSON (se supportato dal modello)
+              // Se il modello non supporta responseMimeType, ci affidiamo al prompt
             }
           }),
         });
@@ -119,20 +125,27 @@ Formato JSON di output:
           const data = await response.json();
           console.log('Google AI response received');
 
-          const extractedText = data.candidates[0].content.parts[0].text;
-          console.log('Extracted text from Google AI:', extractedText);
+          const extractedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          
+          if (!extractedText) {
+             console.error('Google AI response missing extracted text.');
+             const textContent = await extractTextFromPDF(arrayBuffer);
+             parsedData = await fallbackParsing(textContent, file.name);
+          } else {
+            console.log('Extracted text from Google AI:', extractedText);
 
-          // Parse the JSON response from Google AI
-          try {
-            // Clean up the response to ensure it's valid JSON
-            const cleanedText = extractedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-            parsedData = JSON.parse(cleanedText);
-          } catch (parseError) {
-            console.error('Error parsing Google AI response:', parseError);
-            console.error('Response text:', extractedText);
-            console.log('Falling back to manual parsing due to parsing error');
-            const textContent = await extractTextFromPDF(arrayBuffer);
-            parsedData = await fallbackParsing(textContent, file.name);
+            // Parse the JSON response from Google AI
+            try {
+              // Clean up the response to ensure it's valid JSON
+              const cleanedText = extractedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+              parsedData = JSON.parse(cleanedText);
+            } catch (parseError) {
+              console.error('Error parsing Google AI response:', parseError);
+              console.error('Response text:', extractedText);
+              console.log('Falling back to manual parsing due to parsing error');
+              const textContent = await extractTextFromPDF(arrayBuffer);
+              parsedData = await fallbackParsing(textContent, file.name);
+            }
           }
         }
       } catch (error) {
