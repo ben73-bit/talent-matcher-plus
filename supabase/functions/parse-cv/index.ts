@@ -64,47 +64,74 @@ Se un campo non è presente nel CV, usa una stringa vuota "" o un array vuoto []
 async function analyzeWithGemini(base64String: string, googleAIApiKey: string): Promise<any> {
   console.log(`Attempting analysis with Gemini (${GEMINI_MODEL}) in JSON Mode`);
 
-  const response = await fetch(`${GEMINI_API_URL}?key=${googleAIApiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          { text: CV_EXTRACTION_PROMPT },
-          {
-            inlineData: {
-              mimeType: 'application/pdf',
-              data: base64String
-            }
-          }
-        ]
-      }],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 2000,
-        responseMimeType: "application/json" // Force JSON output
-      }
-    }),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    console.error('Gemini API error:', errorBody);
-    throw new Error(`Errore API Gemini: ${response.status} - ${errorBody}`);
-  }
-
-  const data = await response.json();
-  const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!textResponse) {
-    throw new Error("Gemini non ha restituito testo.");
-  }
-
   try {
-    return JSON.parse(textResponse);
-  } catch (e) {
-    console.error("Failed to parse Gemini JSON response:", textResponse);
-    throw new Error("Gemini ha restituito un JSON non valido.");
+    const response = await fetch(`${GEMINI_API_URL}?key=${googleAIApiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: CV_EXTRACTION_PROMPT },
+            {
+              inlineData: {
+                mimeType: 'application/pdf',
+                data: base64String
+              }
+            }
+          ]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 2000,
+          responseMimeType: "application/json"
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error('Gemini API error:', errorBody);
+      throw new Error(`Errore API Gemini: ${response.status} - ${errorBody}`);
+    }
+
+    const data = await response.json();
+    console.log('Gemini raw response:', JSON.stringify(data, null, 2));
+
+    // Estrai il testo dalla risposta
+    const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    console.log('Extracted text from response:', textResponse);
+
+    if (!textResponse) {
+      throw new Error("Gemini non ha restituito alcun testo nella risposta");
+    }
+
+    try {
+      // Prova a parsare il JSON
+      const parsedResponse = JSON.parse(textResponse);
+      console.log('Parsed JSON response:', parsedResponse);
+      
+      // Mappatura dei campi per garantire la compatibilità
+      return {
+        firstName: parsedResponse.firstName || parsedResponse.first_name || '',
+        lastName: parsedResponse.lastName || parsedResponse.last_name || '',
+        email: parsedResponse.email || '',
+        phone: parsedResponse.phone || '',
+        position: parsedResponse.position || parsedResponse.role || '',
+        company: parsedResponse.company || parsedResponse.current_company || '',
+        experience: parsedResponse.experience || parsedResponse.years_experience || '',
+        skills: Array.isArray(parsedResponse.skills) ? 
+          parsedResponse.skills : 
+          (parsedResponse.skills ? [parsedResponse.skills] : []),
+        notes: parsedResponse.notes || parsedResponse.summary || ''
+      };
+    } catch (parseError) {
+      console.error('Error parsing JSON response:', parseError);
+      console.error('Raw text that failed to parse:', textResponse);
+      throw new Error("Impossibile analizzare la risposta JSON da Gemini");
+    }
+  } catch (error) {
+    console.error('Error in analyzeWithGemini:', error);
+    throw error;
   }
 }
 
@@ -198,53 +225,66 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
 // Fallback parsing when AI is not available or has errors
 async function fallbackParsing(textContent: string, fileName: string): Promise<any> {
   console.log('Using fallback parsing for file:', fileName);
+  console.log('Text content sample:', textContent.substring(0, 500) + '...');
 
-  // Simple pattern matching for basic information extraction
+  // Pattern matching migliorato
   const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
   const phoneRegex = /(?:\+39\s?)?(?:\d{3}\s?\d{3}\s?\d{4}|\d{10}|\d{3}[-.\s]?\d{3}[-.\s]?\d{4})/g;
+  
+  const emails = [...new Set(textContent.match(emailRegex) || [])];
+  const phones = [...new Set(textContent.match(phoneRegex) || [])];
 
-  const emails = textContent.match(emailRegex) || [];
-  const phones = textContent.match(phoneRegex) || [];
-
-  // Extract name from filename if possible
+  // Estrai nome e cognome dal nome del file o dal testo
   let firstName = '';
   let lastName = '';
-
-  // Try to extract names from filename (e.g., "2024_CV_Mario_Rossi.pdf")
-  const nameMatch = fileName.match(/CV[_\s]+([A-Za-z]+)[_\s]+([A-Za-z]+)/i);
+  
+  // Prova a estrarre dal nome del file
+  const nameMatch = fileName.match(/([A-Za-z]+)[_\s-]+([A-Za-z]+)/i);
   if (nameMatch) {
     firstName = nameMatch[1];
     lastName = nameMatch[2];
-  }
-
-  // Basic skill extraction - look for common programming languages and technologies
-  const commonSkills = [
-    'JavaScript', 'Python', 'Java', 'React', 'Node.js', 'Angular', 'Vue',
-    'HTML', 'CSS', 'MongoDB', 'MySQL', 'PostgreSQL', 'Docker', 'AWS',
-    'Git', 'TypeScript', 'PHP', 'C++', 'C#', '.NET', 'Spring', 'Express',
-    'Laravel', 'Django', 'Flask', 'Bootstrap', 'Sass', 'Less', 'Webpack',
-    'npm', 'yarn', 'Redis', 'GraphQL', 'REST', 'API', 'Microservices'
-  ];
-
-  const foundSkills: string[] = [];
-  for (const skill of commonSkills) {
-    if (textContent.toLowerCase().includes(skill.toLowerCase())) {
-      foundSkills.push(skill);
+  } else {
+    // Prova a estrarre dal testo (cerca sequenze di parole con iniziale maiuscola)
+    const nameParts = textContent.match(/\b[A-Z][a-z]+\b/g) || [];
+    if (nameParts.length >= 2) {
+      firstName = nameParts[0];
+      lastName = nameParts[1];
     }
   }
 
-  // Return structured data
-  return {
+  // Estrai competenze
+  const commonSkills = [
+    'JavaScript', 'Python', 'Java', 'React', 'Node.js', 'Angular', 'Vue',
+    'HTML', 'CSS', 'MongoDB', 'MySQL', 'PostgreSQL', 'Docker', 'AWS',
+    experience = `${expMatch[1]} anni`;
+  } else {
+    // Stima basata su ruoli/posizioni
+    const roles = textContent.match(/(?:ruolo|posizione|position|role):?\s*([^\n,]+)/gi) || [];
+    experience = roles.length > 0 ? `${roles.length}+ anni` : 'Esperienza non specificata';
+  }
+
+  // Estrai posizione attuale
+  let position = '';
+  const positionMatch = textContent.match(/(?:posizione|ruolo|position|role)[:\s]+([^\n,]+)/i);
+  if (positionMatch) {
+    position = positionMatch[1].trim();
+  }
+
+  // Costruisci l'oggetto risultato
+  const result = {
     firstName: firstName || 'Nome',
     lastName: lastName || 'Cognome',
     email: emails[0] || 'email@esempio.it',
     phone: phones[0] || '+39 000 000 0000',
-    position: 'Sviluppatore Software',
+    position: position || 'Sviluppatore Software',
     company: 'Azienda',
-    experience: '3-5 anni',
+    experience: experience,
     skills: foundSkills.length > 0 ? foundSkills.slice(0, 6) : ['JavaScript', 'HTML', 'CSS'],
     notes: `CV analizzato automaticamente dal file ${fileName}. Contiene informazioni professionali e competenze tecniche.`
   };
+
+  console.log('Fallback parsing result:', result);
+  return result;
 }
 
 serve(async (req: Request) => {
@@ -252,63 +292,80 @@ serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    console.log('Starting CV parsing request');
+  console.log('Starting CV parsing request');
 
+  try {
     const formData = await req.formData();
     const file = formData.get('file') as File;
 
     if (!file) {
-      throw new Error('No file provided');
+      throw new Error('Nessun file fornito');
     }
 
-    console.log('File received:', file.name, 'Size:', file.size, 'Type:', file.type);
+    console.log('File received:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    });
 
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
-
-    // Use standard library for robust Base64 encoding
     const base64String = encodeBase64(bytes);
 
     const googleAIApiKey = Deno.env.get('GOOGLE_AI_API_KEY');
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-    let parsedData = null;
+    console.log('API Keys available:', {
+      hasGoogleKey: !!googleAIApiKey,
+      hasOpenAIKey: !!openAIApiKey
+    });
 
-    // 1. Try Gemini first
+    let parsedData = null;
+    let lastError = null;
+
+    // 1. Prova con Gemini
     if (googleAIApiKey) {
       try {
+        console.log('Trying Gemini analysis...');
         await runDiagnosticTest(googleAIApiKey);
         parsedData = await analyzeWithGemini(base64String, googleAIApiKey);
+        console.log('Gemini analysis successful');
       } catch (e) {
-        console.warn('Gemini analysis failed, attempting fallback:', e);
+        lastError = e;
+        console.warn('Gemini analysis failed:', e);
       }
     }
 
-    // 2. Fallback to OpenAI
+    // 2. Fallback a OpenAI
     if (!parsedData && openAIApiKey) {
       try {
+        console.log('Trying OpenAI analysis...');
         parsedData = await analyzeWithOpenAI(base64String, openAIApiKey);
+        console.log('OpenAI analysis successful');
       } catch (e) {
-        console.error('OpenAI analysis also failed:', e);
+        lastError = e;
+        console.warn('OpenAI analysis failed:', e);
       }
     }
 
-    // 3. Fallback to simple text extraction
+    // 3. Fallback all'estrazione del testo
     if (!parsedData) {
-      console.log('Both AI models failed. Using fallback parsing.');
-      const textContent = await extractTextFromPDF(arrayBuffer);
-      parsedData = await fallbackParsing(textContent, file.name);
+      console.log('Both AI models failed, trying fallback text extraction...');
+      try {
+        const textContent = await extractTextFromPDF(arrayBuffer);
+        parsedData = await fallbackParsing(textContent, file.name);
+        console.log('Fallback parsing successful');
+      } catch (e) {
+        lastError = e;
+        console.error('Fallback parsing failed:', e);
+      }
     }
 
-    // Final validation
-    if (parsedData && typeof parsedData === 'object') {
-      parsedData.firstName = parsedData.firstName || '';
-      parsedData.lastName = parsedData.lastName || '';
-      parsedData.email = parsedData.email || '';
+    if (!parsedData) {
+      throw lastError || new Error("Tutti i tentativi di analisi del CV hanno fallito");
     }
 
-    console.log('Successfully parsed CV data:', parsedData);
+    console.log('Final parsed data:', parsedData);
 
     return new Response(JSON.stringify({
       success: true,
@@ -319,15 +376,19 @@ serve(async (req: Request) => {
 
   } catch (error) {
     console.error('Error in parse-cv function:', error);
-
+    
+    // Costruisci un messaggio di errore dettagliato
     let errorMessage = 'Errore sconosciuto durante l\'analisi del CV.';
     if (error instanceof Error) {
       errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
     }
 
     return new Response(JSON.stringify({
       success: false,
-      error: errorMessage
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

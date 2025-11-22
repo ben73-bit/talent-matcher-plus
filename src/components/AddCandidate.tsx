@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { 
-  Upload, 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
+import {
+  Upload,
+  User,
+  Mail,
+  Phone,
+  MapPin,
   Briefcase,
   FileText,
   Sparkles,
@@ -107,7 +107,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
     // Create a File from the Blob
     const croppedFile = new File([croppedBlob], "photo.jpg", { type: "image/jpeg" });
     setUploadedPhoto(croppedFile);
-    
+
     // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -130,7 +130,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
       });
       return;
     }
-    
+
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -145,14 +145,14 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
 
     setUploadedCV(file);
     setIsProcessing(true);
-    
+
     try {
       console.log('Starting CV analysis with file:', file.name);
-      
+
       // Create FormData to send the file
       const formDataToSend = new FormData();
       formDataToSend.append('file', file);
-      
+
       // Usa l'access_token dalla sessione ottenuta tramite useAuth
       const accessToken = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -168,21 +168,21 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
       );
 
       const data = await response.json();
-      
+
       if (!response.ok || !data.success) {
         // Se la risposta HTTP non è OK, o se la funzione Edge restituisce success: false
         throw new Error(data.error || `Errore HTTP ${response.status} durante l'analisi del CV.`);
       }
-      
+
       const extractedData = data.data;
       setExtractedData(extractedData);
       setFormData(prev => ({ ...prev, ...extractedData }));
-      
+
       toast({
         title: "CV Analizzato",
         description: "Le informazioni sono state estratte automaticamente dal CV",
       });
-      
+
     } catch (error) {
       console.error('Error parsing CV:', error);
       toast({
@@ -197,7 +197,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
 
   const checkForDuplicates = () => {
     const duplicates = candidates.filter(
-      candidate => 
+      candidate =>
         candidate.first_name.toLowerCase() === formData.firstName.toLowerCase() &&
         candidate.last_name.toLowerCase() === formData.lastName.toLowerCase()
     );
@@ -206,7 +206,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast({
         title: "Errore",
@@ -225,9 +225,9 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
         return;
       }
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       let photoUrl = "";
       let cvUrl = "";
@@ -240,11 +240,11 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
           .upload(photoFileName, uploadedPhoto);
 
         if (photoError) throw photoError;
-        
+
         const { data: { publicUrl } } = supabase.storage
           .from('candidate-photos')
           .getPublicUrl(photoFileName);
-        
+
         photoUrl = publicUrl;
       }
 
@@ -256,18 +256,18 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
           .upload(cvFileName, uploadedCV);
 
         if (cvError) throw cvError;
-        
+
         const { data: { publicUrl } } = supabase.storage
           .from('candidate-cvs')
           .getPublicUrl(cvFileName);
-        
+
         cvUrl = publicUrl;
       }
 
       // Convert experience to years number
-      const experienceYears = formData.experience ? 
+      const experienceYears = formData.experience ?
         parseInt(formData.experience.split(' ')[0]) || 0 : 0;
-      
+
       const candidate = await createCandidate({
         first_name: formData.firstName,
         last_name: formData.lastName,
@@ -283,7 +283,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
         cv_url: cvUrl || undefined,
         // database_id: formData.databaseId || undefined, Rimosso
       });
-      
+
       if (candidate) {
         // Reset form on success
         setFormData({
@@ -303,7 +303,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
         setPhotoPreview("");
         setUploadedCV(null);
         setPendingSubmit(false);
-        
+
         // Go back to candidate list
         onBack();
       }
@@ -380,8 +380,8 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
                 <p className="text-sm text-destructive/90">
                   Per utilizzare l'analisi automatica del CV, devi configurare almeno una chiave API (OpenAI o Google AI) nelle impostazioni.
                 </p>
-                <Button 
-                  variant="destructive" 
+                <Button
+                  variant="destructive"
                   size="sm"
                   onClick={() => navigate('/settings')}
                   className="w-full"
@@ -393,11 +393,10 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
             )}
 
             <div className="text-center">
-              <div className={`border-2 border-dashed rounded-lg p-8 transition-fast ${
-                isAIConfigured 
-                  ? 'border-border hover:border-primary/50' 
-                  : 'border-muted-foreground/30 bg-muted/20 cursor-not-allowed'
-              }`}>
+              <div className={`border-2 border-dashed rounded-lg p-8 transition-fast ${isAIConfigured
+                ? 'border-border hover:border-primary/50'
+                : 'border-muted-foreground/30 bg-muted/20 cursor-not-allowed'
+                }`}>
                 <Upload className={`h-12 w-12 mx-auto mb-4 ${isAIConfigured ? 'text-muted-foreground' : 'text-muted-foreground/50'}`} />
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Carica CV PDF</p>
@@ -464,8 +463,8 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
                 <Label>Foto Candidato</Label>
                 <div className="flex items-center space-x-4">
                   {photoPreview ? (
-                    <img 
-                      src={photoPreview} 
+                    <img
+                      src={photoPreview}
                       alt="Anteprima foto"
                       className="h-20 w-20 rounded-full object-cover border-2 border-primary/20"
                     />
@@ -564,11 +563,11 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="experience">Esperienza</Label>
-                  <Select 
+                  <Select
                     value={formData.experience}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, experience: value }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="experience">
                       <SelectValue placeholder="Seleziona esperienza" />
                     </SelectTrigger>
                     <SelectContent>
@@ -644,10 +643,10 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
             </form>
           </CardContent>
         </Card>
-      </div>
+      </div >
 
       {/* Image Crop Dialog */}
-      <ImageCropDialog
+      < ImageCropDialog
         open={cropDialogOpen}
         onOpenChange={setCropDialogOpen}
         imageSrc={tempPhotoSrc}
@@ -655,7 +654,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
       />
 
       {/* Duplicate Warning Dialog */}
-      <AlertDialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
+      < AlertDialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen} >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -707,10 +706,10 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+      </AlertDialog >
 
       {/* Features Info */}
-      <Card className="bg-primary-light border-primary/20 shadow-soft">
+      < Card className="bg-primary-light border-primary/20 shadow-soft" >
         <CardContent className="p-4">
           <div className="flex items-center space-x-3 text-primary">
             <Sparkles className="h-5 w-5" />
@@ -722,7 +721,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
             </div>
           </div>
         </CardContent>
-      </Card>
-    </div>
+      </Card >
+    </div >
   );
 };
