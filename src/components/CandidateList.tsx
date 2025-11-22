@@ -9,7 +9,8 @@ import {
   List,
   LayoutGrid,
   Upload,
-  Trash2, // <-- Aggiunto Trash2
+  Trash2,
+  GripVertical,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -48,8 +49,26 @@ import { useCandidates, Candidate } from "@/hooks/useCandidates";
 import { useProfile } from "@/hooks/useProfile";
 import { EmailModal } from "./EmailModal";
 import { ImportCandidatesDialog } from "./ImportCandidatesDialog";
-import { CandidateCard } from "./CandidateCard"; // Import the new card component
+import { CandidateCard } from "./CandidateCard";
 import { cn } from "@/lib/utils";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 type ViewMode = 'table' | 'grid';
 
@@ -77,20 +96,50 @@ interface CandidateItemProps {
   updateCandidate: (id: string, updates: any) => void;
   emailService: string;
   onEmailClick: (candidate: Candidate) => void;
+  isDragEnabled?: boolean;
 }
 
-const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCandidate, emailService, onEmailClick }: CandidateItemProps) => {
+const CandidateItem = ({ candidate, onViewCandidate, deleteCandidate, updateCandidate, emailService, onEmailClick, isDragEnabled = false }: CandidateItemProps) => {
   const initials = `${candidate.first_name[0]}${candidate.last_name[0]}`.toUpperCase();
 
   const handleUpdateStatus = (status: Candidate['status']) => {
     updateCandidate(candidate.id, { status });
   };
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: candidate.id,
+    disabled: !isDragEnabled
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 999 : 'auto',
+    position: isDragging ? 'relative' as 'relative' : undefined,
+  };
+
   return (
     <TableRow
+      ref={setNodeRef}
+      style={style}
       key={candidate.id}
-      className="cursor-pointer hover:bg-secondary/50 transition-colors"
+      className={`cursor-pointer hover:bg-secondary/50 transition-colors ${isDragging ? 'bg-secondary/80' : ''}`}
     >
+      {isDragEnabled && (
+        <TableCell className="w-[50px]">
+          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing flex justify-center">
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </TableCell>
+      )}
       <TableCell className="font-medium w-1/4" onClick={() => onViewCandidate(candidate.id)}>
         <div className="flex items-center space-x-3">
           <Avatar className="h-8 w-8">
@@ -194,26 +243,42 @@ interface CandidateListProps {
 }
 
 export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
-  const { candidates, loading, deleteCandidate, updateCandidate, fetchByDatabase } = useCandidates();
+  const { candidates, loading, deleteCandidate, updateCandidate, fetchByDatabase, reorderCandidates } = useCandidates();
   const { profile } = useProfile();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("recent");
-  const [viewMode, setViewMode] = useState<ViewMode>("grid"); // Default to grid view
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [localCandidates, setLocalCandidates] = useState<Candidate[]>([]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     fetchByDatabase();
   }, []);
 
+  useEffect(() => {
+    setLocalCandidates(candidates);
+  }, [candidates]);
+
   const handleExport = () => {
     const csvContent = [
       ['first_name', 'last_name', 'email', 'phone', 'position', 'company', 'experience_years', 'skills', 'notes', 'status', 'created_at'],
-      ...candidates.map(c => [
+      ...localCandidates.map(c => [
         c.first_name,
         c.last_name,
         c.email,
@@ -251,240 +316,278 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
     updateCandidate(id, { status });
   };
 
-  const sortedAndFilteredCandidates = candidates
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setLocalCandidates((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+
+        const newItems = arrayMove(items, oldIndex, newIndex);
+
+        // Call API to persist order
+        reorderCandidates(newItems);
+
+        return newItems;
+      });
+    }
+  };
+
+  const filteredCandidates = localCandidates
     .filter(candidate => {
       const fullName = `${candidate.first_name} ${candidate.last_name}`.toLowerCase();
       const position = candidate.position?.toLowerCase() || '';
       const skills = candidate.skills || [];
 
       const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
-                           position.includes(searchTerm.toLowerCase()) ||
-                           skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
+        position.includes(searchTerm.toLowerCase()) ||
+        skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesStatus = statusFilter === "all" || candidate.status === statusFilter;
       return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          const nameA = `${a.last_name} ${a.first_name}`;
-          const nameB = `${b.last_name} ${b.first_name}`;
-          return nameA.localeCompare(nameB);
-        case 'recent':
-        default:
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      }
     });
 
+  const sortedAndFilteredCandidates = [...filteredCandidates].sort((a, b) => {
+    if (sortBy === 'manual') return 0;
+
+    switch (sortBy) {
+      case 'name':
+        const nameA = `${a.last_name} ${a.first_name}`;
+        const nameB = `${b.last_name} ${b.first_name}`;
+        return nameA.localeCompare(nameB);
+      case 'recent':
+      default:
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+  });
+
+  const isDragEnabled = sortBy === 'manual';
+
   return (
-    <motion.div
-      className="space-y-6"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
     >
       <motion.div
-        className="flex items-center justify-between"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.1 }}
+        className="space-y-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
       >
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Candidati</h1>
-          <p className="text-muted-foreground">
-            Gestisci e visualizza tutti i candidati ({sortedAndFilteredCandidates.length})
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={() => setShowImportDialog(true)}>
-            <Upload className="mr-2 h-4 w-4" />
-            Importa CSV
-          </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            Esporta
-          </Button>
-          <Button variant="outline" onClick={() => setShowAdvancedFilters(true)}>
-            <Filter className="mr-2 h-4 w-4" />
-            Filtri Avanzati
-          </Button>
-        </div>
-      </motion.div>
-
-      <motion.div
-        className="flex items-center space-x-4 bg-card p-4 rounded-lg border shadow-soft"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-      >
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Cerca per nome, posizione o competenze..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filtra per stato" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tutti gli stati</SelectItem>
-            <SelectItem value="new">Nuovi</SelectItem>
-            <SelectItem value="contacted">Contattati</SelectItem>
-            <SelectItem value="interviewed">Intervistati</SelectItem>
-            <SelectItem value="hired">Assunti</SelectItem>
-            <SelectItem value="rejected">Scartati</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Ordina per" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="recent">Più recenti</SelectItem>
-            <SelectItem value="name">Alfabetico (A-Z)</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        <ToggleGroup 
-          type="single" 
-          value={viewMode} 
-          onValueChange={(value: ViewMode) => value && setViewMode(value)}
-          className="shrink-0"
-        >
-          <ToggleGroupItem value="grid" aria-label="Visualizzazione Griglia" className="h-10 w-10 p-2">
-            <LayoutGrid className="h-4 w-4" />
-          </ToggleGroupItem>
-          <ToggleGroupItem value="table" aria-label="Visualizzazione Tabella" className="h-10 w-10 p-2">
-            <List className="h-4 w-4" />
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </motion.div>
-
-      {loading && (
         <motion.div
-          className="flex justify-center items-center py-12"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          className="flex items-center justify-between"
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
         >
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        </motion.div>
-      )}
-
-      {!loading && candidates.length === 0 && (
-        <motion.div
-          className="text-center py-12"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <p className="text-muted-foreground">Nessun candidato trovato. Aggiungi il tuo primo candidato!</p>
-        </motion.div>
-      )}
-
-      {!loading && sortedAndFilteredCandidates.length > 0 && (
-        viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {sortedAndFilteredCandidates.map((candidate) => (
-              <CandidateCard
-                key={candidate.id}
-                candidate={candidate}
-                emailService={profile?.email_service || 'outlook'}
-                onViewCandidate={onViewCandidate}
-                onEmailClick={handleEmailClick}
-                onDelete={deleteCandidate}
-                onUpdateStatus={handleUpdateStatus}
-              />
-            ))}
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Candidati</h1>
+            <p className="text-muted-foreground">
+              Gestisci e visualizza tutti i candidati ({sortedAndFilteredCandidates.length})
+            </p>
           </div>
-        ) : (
-          <Card className="shadow-soft border-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-secondary/50 hover:bg-secondary/50">
-                  <TableHead className="w-1/4">Candidato</TableHead>
-                  <TableHead className="w-1/5 hidden sm:table-cell">Posizione/Azienda</TableHead>
-                  <TableHead className="w-1/5 hidden lg:table-cell">Competenze</TableHead>
-                  <TableHead className="w-1/6">Stato</TableHead>
-                  <TableHead className="w-1/12 text-right">Azioni</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedAndFilteredCandidates.map((candidate) => (
-                  <CandidateItem
-                    key={candidate.id}
-                    candidate={candidate}
-                    onViewCandidate={onViewCandidate}
-                    deleteCandidate={deleteCandidate}
-                    updateCandidate={updateCandidate}
-                    emailService={profile?.email_service || 'outlook'}
-                    onEmailClick={handleEmailClick}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        )
-      )}
-
-      <Dialog open={showAdvancedFilters} onOpenChange={setShowAdvancedFilters}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Filtri Avanzati</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleziona status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="new">Nuovo</SelectItem>
-                  <SelectItem value="contacted">Contattato</SelectItem>
-                  <SelectItem value="interviewed">Intervistato</SelectItem>
-                  <SelectItem value="hired">Assunto</SelectItem>
-                  <SelectItem value="rejected">Rifiutato</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Posizione</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleziona posizione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from(new Set(candidates.map(c => c.position))).map(pos => (
-                    <SelectItem key={pos} value={pos || ''}>{pos}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button className="w-full" onClick={() => {
-              toast({ title: 'Filtri applicati', description: 'I filtri avanzati sono stati applicati' });
-              setShowAdvancedFilters(false);
-            }}>
-              Applica Filtri
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" onClick={() => setShowImportDialog(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Importa CSV
+            </Button>
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="mr-2 h-4 w-4" />
+              Esporta
+            </Button>
+            <Button variant="outline" onClick={() => setShowAdvancedFilters(true)}>
+              <Filter className="mr-2 h-4 w-4" />
+              Filtri Avanzati
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </motion.div>
 
-      <EmailModal
-        open={showEmailModal}
-        onOpenChange={setShowEmailModal}
-        candidate={selectedCandidate}
-        emailService={profile?.email_service || 'outlook'}
-      />
+        <motion.div
+          className="flex items-center space-x-4 bg-card p-4 rounded-lg border shadow-soft"
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cerca per nome, posizione o competenze..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
-      <ImportCandidatesDialog
-        open={showImportDialog}
-        onOpenChange={setShowImportDialog}
-      />
-    </motion.div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filtra per stato" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutti gli stati</SelectItem>
+              <SelectItem value="new">Nuovi</SelectItem>
+              <SelectItem value="contacted">Contattati</SelectItem>
+              <SelectItem value="interviewed">Intervistati</SelectItem>
+              <SelectItem value="hired">Assunti</SelectItem>
+              <SelectItem value="rejected">Scartati</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Ordina per" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="recent">Più recenti</SelectItem>
+              <SelectItem value="name">Alfabetico (A-Z)</SelectItem>
+              <SelectItem value="manual">Manuale (Drag & Drop)</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <ToggleGroup
+            type="single"
+            value={viewMode}
+            onValueChange={(value: ViewMode) => value && setViewMode(value)}
+            className="shrink-0"
+          >
+            <ToggleGroupItem value="grid" aria-label="Visualizzazione Griglia" className="h-10 w-10 p-2">
+              <LayoutGrid className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="table" aria-label="Visualizzazione Tabella" className="h-10 w-10 p-2">
+              <List className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </motion.div>
+
+        {loading && (
+          <motion.div
+            className="flex justify-center items-center py-12"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </motion.div>
+        )}
+
+        {!loading && candidates.length === 0 && (
+          <motion.div
+            className="text-center py-12"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <p className="text-muted-foreground">Nessun candidato trovato. Aggiungi il tuo primo candidato!</p>
+          </motion.div>
+        )}
+
+        {!loading && sortedAndFilteredCandidates.length > 0 && (
+          <SortableContext
+            items={sortedAndFilteredCandidates.map(c => c.id)}
+            strategy={viewMode === 'grid' ? rectSortingStrategy : verticalListSortingStrategy}
+          >
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {sortedAndFilteredCandidates.map((candidate) => (
+                  <CandidateCard
+                    key={candidate.id}
+                    candidate={candidate}
+                    emailService={profile?.email_service || 'outlook'}
+                    onViewCandidate={onViewCandidate}
+                    onEmailClick={handleEmailClick}
+                    onDelete={deleteCandidate}
+                    onUpdateStatus={handleUpdateStatus}
+                    isDragEnabled={isDragEnabled}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card className="shadow-soft border-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-secondary/50 hover:bg-secondary/50">
+                      {isDragEnabled && <TableHead className="w-[50px]"></TableHead>}
+                      <TableHead className="w-1/4">Candidato</TableHead>
+                      <TableHead className="w-1/5 hidden sm:table-cell">Posizione/Azienda</TableHead>
+                      <TableHead className="w-1/5 hidden lg:table-cell">Competenze</TableHead>
+                      <TableHead className="w-1/6">Stato</TableHead>
+                      <TableHead className="w-1/12 text-right">Azioni</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedAndFilteredCandidates.map((candidate) => (
+                      <CandidateItem
+                        key={candidate.id}
+                        candidate={candidate}
+                        onViewCandidate={onViewCandidate}
+                        deleteCandidate={deleteCandidate}
+                        updateCandidate={updateCandidate}
+                        emailService={profile?.email_service || 'outlook'}
+                        onEmailClick={handleEmailClick}
+                        isDragEnabled={isDragEnabled}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </Card>
+            )}
+          </SortableContext>
+        )}
+
+        <Dialog open={showAdvancedFilters} onOpenChange={setShowAdvancedFilters}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Filtri Avanzati</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">Nuovo</SelectItem>
+                    <SelectItem value="contacted">Contattato</SelectItem>
+                    <SelectItem value="interviewed">Intervistato</SelectItem>
+                    <SelectItem value="hired">Assunto</SelectItem>
+                    <SelectItem value="rejected">Rifiutato</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Posizione</Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona posizione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from(new Set(candidates.map(c => c.position))).map(pos => (
+                      <SelectItem key={pos} value={pos || ''}>{pos}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button className="w-full" onClick={() => {
+                toast({ title: 'Filtri applicati', description: 'I filtri avanzati sono stati applicati' });
+                setShowAdvancedFilters(false);
+              }}>
+                Applica Filtri
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <EmailModal
+          open={showEmailModal}
+          onOpenChange={setShowEmailModal}
+          candidate={selectedCandidate}
+          emailService={profile?.email_service || 'outlook'}
+        />
+
+        <ImportCandidatesDialog
+          open={showImportDialog}
+          onOpenChange={setShowImportDialog}
+        />
+      </motion.div>
+    </DndContext>
   );
 };
