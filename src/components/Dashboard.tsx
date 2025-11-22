@@ -94,7 +94,8 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
           <Calendar className="mr-2 h-4 w-4" />
           {new Date().toLocaleDateString('it-IT', {
             day: 'numeric',
-            month: 'long'
+            month: 'long',
+            year: 'numeric'
           })}
         </Button>
       </motion.div>
