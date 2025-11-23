@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { 
-  Upload, 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
+import {
+  Upload,
+  User,
+  Mail,
+  Phone,
+  MapPin,
   Briefcase,
   FileText,
   Sparkles,
@@ -40,9 +40,7 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
   const { toast } = useToast();
   const { user } = useAuth();
   const { updateCandidate } = useCandidates();
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [extractedData, setExtractedData] = useState<any>(null);
   const [uploadedPhoto, setUploadedPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>(candidate.photo_url || "");
   const [uploadedCV, setUploadedCV] = useState<File | null>(null);
@@ -58,7 +56,6 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
     experience: candidate.experience_years ? `${candidate.experience_years}+ anni` : "",
     skills: candidate.skills || [],
     notes: candidate.notes || "",
-    // databaseId: candidate.database_id || "" Rimosso
   });
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,7 +82,7 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
   const handleCropComplete = (croppedBlob: Blob) => {
     const croppedFile = new File([croppedBlob], "photo.jpg", { type: "image/jpeg" });
     setUploadedPhoto(croppedFile);
-    
+
     const reader = new FileReader();
     reader.onloadend = () => {
       setPhotoPreview(reader.result as string);
@@ -98,7 +95,7 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
     });
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -112,48 +109,15 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
     }
 
     setUploadedCV(file);
-    setIsProcessing(true);
-    
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('file', file);
-      
-      const { data, error } = await supabase.functions.invoke('parse-cv', {
-        body: formDataToSend,
-      });
-      
-      if (error) {
-        throw new Error('Errore nella chiamata al servizio di parsing');
-      }
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Errore nell\'analisi del CV');
-      }
-      
-      const extractedData = data.data;
-      setExtractedData(extractedData);
-      setFormData(prev => ({ ...prev, ...extractedData }));
-      
-      toast({
-        title: "CV Analizzato",
-        description: "Le informazioni sono state estratte automaticamente dal CV",
-      });
-      
-    } catch (error) {
-      console.error('Error parsing CV:', error);
-      toast({
-        title: "Errore",
-        description: error instanceof Error ? error.message : "Errore nell'analisi del CV",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+    toast({
+      title: "CV Selezionato",
+      description: "Il file verrà caricato al salvataggio delle modifiche",
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast({
         title: "Errore",
@@ -162,9 +126,9 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       let photoUrl = candidate.photo_url || "";
       let cvUrl = candidate.cv_url || "";
@@ -177,11 +141,11 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
           .upload(photoFileName, uploadedPhoto);
 
         if (photoError) throw photoError;
-        
+
         const { data: { publicUrl } } = supabase.storage
           .from('candidate-photos')
           .getPublicUrl(photoFileName);
-        
+
         photoUrl = publicUrl;
       }
 
@@ -193,18 +157,18 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
           .upload(cvFileName, uploadedCV);
 
         if (cvError) throw cvError;
-        
+
         const { data: { publicUrl } } = supabase.storage
           .from('candidate-cvs')
           .getPublicUrl(cvFileName);
-        
+
         cvUrl = publicUrl;
       }
 
       // Convert experience to years number
-      const experienceYears = formData.experience ? 
+      const experienceYears = formData.experience ?
         parseInt(formData.experience.split(' ')[0]) || 0 : 0;
-      
+
       await updateCandidate(candidate.id, {
         first_name: formData.firstName,
         last_name: formData.lastName,
@@ -217,9 +181,8 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
         notes: formData.notes,
         photo_url: photoUrl || undefined,
         cv_url: cvUrl || undefined,
-        // database_id: null, // Rimosso l'assegnazione esplicita
       });
-      
+
       toast({
         title: "Candidato aggiornato",
         description: "Le modifiche sono state salvate con successo",
@@ -274,7 +237,7 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
         <Card className="lg:col-span-1 bg-gradient-card border-0 shadow-soft">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Sparkles className="mr-2 h-5 w-5 text-primary" />
+              <FileText className="mr-2 h-5 w-5 text-primary" />
               Aggiorna CV
             </CardTitle>
           </CardHeader>
@@ -285,56 +248,52 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Carica Nuovo CV PDF</p>
                   <p className="text-xs text-muted-foreground">
-                    L'AI estrarrà automaticamente le informazioni
+                    Carica un nuovo file PDF per sostituire quello attuale
                   </p>
                   <input
                     type="file"
                     accept=".pdf"
-                    onChange={handleFileUpload}
+                    onChange={handleCVUpload}
                     className="hidden"
                     id="cv-upload"
-                    disabled={isProcessing}
                   />
                   <Button
                     asChild
                     variant="outline"
-                    disabled={isProcessing}
                     className="mt-2"
                   >
                     <label htmlFor="cv-upload" className="cursor-pointer">
-                      {isProcessing ? "Elaborazione..." : "Seleziona File"}
+                      {uploadedCV ? "Cambia File" : "Seleziona File"}
                     </label>
                   </Button>
                 </div>
               </div>
             </div>
 
-            {isProcessing && (
-              <div className="text-center space-y-3">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-                <p className="text-sm text-muted-foreground">
-                  Analizzando il CV con AI...
+            {uploadedCV && (
+              <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                <p className="text-sm font-medium text-primary flex items-center">
+                  <FileText className="mr-2 h-4 w-4" />
+                  {uploadedCV.name}
                 </p>
-              </div>
-            )}
-
-            {extractedData && (
-              <div className="space-y-3 p-4 bg-success-light/50 rounded-lg border border-success/20">
-                <div className="flex items-center text-success text-sm font-medium">
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Dati estratti automaticamente
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Verifica e modifica i dati se necessario nel form accanto
-                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Pronto per il caricamento
+                </p>
               </div>
             )}
 
             {candidate.cv_url && !uploadedCV && (
               <div className="p-4 bg-muted/30 rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  CV attuale: <span className="text-foreground font-medium">Già caricato</span>
+                  CV attuale: <span className="text-foreground font-medium">Presente</span>
                 </p>
+                <Button
+                  variant="link"
+                  className="h-auto p-0 text-xs mt-1"
+                  onClick={() => window.open(candidate.cv_url, '_blank')}
+                >
+                  Visualizza CV attuale
+                </Button>
               </div>
             )}
           </CardContent>
@@ -355,8 +314,8 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
                 <Label>Foto Candidato</Label>
                 <div className="flex items-center space-x-4">
                   {photoPreview ? (
-                    <img 
-                      src={photoPreview} 
+                    <img
+                      src={photoPreview}
                       alt="Anteprima foto"
                       className="h-20 w-20 rounded-full object-cover border-2 border-primary/20"
                     />
@@ -455,7 +414,7 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="experience">Esperienza</Label>
-                  <Select 
+                  <Select
                     value={formData.experience}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, experience: value }))}
                   >
@@ -522,30 +481,6 @@ export const EditCandidate = ({ candidate, onBack, onSave }: EditCandidateProps)
                   rows={4}
                 />
               </div>
-
-              {/* Rimosso: Database Selection */}
-              {/* <div className="space-y-2">
-                <Label htmlFor="database">Database (Opzionale)</Label>
-                <Select 
-                  value={formData.databaseId || "none"}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, databaseId: value === "none" ? "" : value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona un database" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nessun database</SelectItem>
-                    {ownDatabases.map((db) => (
-                      <SelectItem key={db.id} value={db.id}>
-                        {db.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Assegna il candidato a un database per condividerlo con i collaboratori
-                </p>
-              </div> */}
 
               <div className="flex gap-3 pt-4">
                 <Button

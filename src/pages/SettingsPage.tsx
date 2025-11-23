@@ -13,18 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Sidebar } from '@/components/Sidebar';
 import { Navigation } from '@/components/Navigation';
-import { Eye, EyeOff, Key, Globe, Bell, Shield, ArrowLeft, Mail, FileDown, LayoutDashboard } from 'lucide-react';
+import { Eye, EyeOff, Globe, Bell, Shield, ArrowLeft, Mail, FileDown, LayoutDashboard } from 'lucide-react';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { profile, updateProfile } = useProfile();
   const { user } = useAuth();
   const { toast } = useToast();
-  
-  const [openaiKey, setOpenaiKey] = useState('');
-  const [googleAiKey, setGoogleAiKey] = useState('');
-  const [showOpenaiKey, setShowOpenaiKey] = useState(false);
-  const [showGoogleKey, setShowGoogleKey] = useState(false);
+
   const [language, setLanguage] = useState(profile?.language || 'it');
   const [emailNotifications, setEmailNotifications] = useState(profile?.email_notifications ?? true);
   const [emailService, setEmailService] = useState(profile?.email_service || 'outlook');
@@ -45,23 +41,6 @@ export default function SettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const handleSaveApiKeys = async () => {
-    setIsLoading(true);
-    try {
-      const updates: any = {};
-      if (openaiKey.trim()) updates.openai_api_key = openaiKey;
-      if (googleAiKey.trim()) updates.google_ai_api_key = googleAiKey;
-      
-      if (Object.keys(updates).length > 0) {
-        await updateProfile(updates);
-        setOpenaiKey('');
-        setGoogleAiKey('');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSavePreferences = async () => {
     setIsLoading(true);
@@ -157,12 +136,12 @@ export default function SettingsPage() {
       // First delete all user data
       await supabase.from('candidates').delete().eq('user_id', user!.id);
       await supabase.from('profiles').delete().eq('user_id', user!.id);
-      
+
       toast({
         title: 'Account eliminato',
         description: 'Il tuo account è stato eliminato con successo',
       });
-      
+
       await supabase.auth.signOut();
       navigate('/auth');
     } catch (error) {
@@ -174,9 +153,6 @@ export default function SettingsPage() {
       });
     }
   };
-
-  const hasOpenaiKey = profile?.openai_api_key && profile.openai_api_key.length > 0;
-  const hasGoogleKey = profile?.google_ai_api_key && profile.google_ai_api_key.length > 0;
 
   return (
     <div className="flex h-screen bg-background">
@@ -205,82 +181,6 @@ export default function SettingsPage() {
             </div>
 
             <Separator />
-
-            {/* API Keys Section */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Key className="h-5 w-5" />
-                  <CardTitle>Chiavi API</CardTitle>
-                </div>
-                <CardDescription>
-                  Configura le tue chiavi API personali per i servizi AI. Le chiavi sono crittografate e utilizzate solo per le tue richieste.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="openai-key">OpenAI API Key</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Input
-                        id="openai-key"
-                        type={showOpenaiKey ? 'text' : 'password'}
-                        value={openaiKey}
-                        onChange={(e) => setOpenaiKey(e.target.value)}
-                        placeholder={hasOpenaiKey ? '••••••••••••••••' : 'sk-...'}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0 h-full"
-                        onClick={() => setShowOpenaiKey(!showOpenaiKey)}
-                      >
-                        {showOpenaiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </div>
-                  {hasOpenaiKey && (
-                    <p className="text-xs text-muted-foreground">
-                      ✓ Chiave configurata
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="google-key">Google AI API Key</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Input
-                        id="google-key"
-                        type={showGoogleKey ? 'text' : 'password'}
-                        value={googleAiKey}
-                        onChange={(e) => setGoogleAiKey(e.target.value)}
-                        placeholder={hasGoogleKey ? '••••••••••••••••' : 'AIza...'}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0 h-full"
-                        onClick={() => setShowGoogleKey(!showGoogleKey)}
-                      >
-                        {showGoogleKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </div>
-                  {hasGoogleKey && (
-                    <p className="text-xs text-muted-foreground">
-                      ✓ Chiave configurata
-                    </p>
-                  )}
-                </div>
-
-                <Button onClick={handleSaveApiKeys} disabled={isLoading}>
-                  Salva Chiavi API
-                </Button>
-              </CardContent>
-            </Card>
 
             {/* Email Service Section */}
             <Card>
@@ -449,7 +349,7 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">
                     Scegli quali widget visualizzare sulla dashboard
                   </p>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
@@ -461,7 +361,7 @@ export default function SettingsPage() {
                       <Switch
                         id="widget-stats"
                         checked={dashboardWidgets.stats}
-                        onCheckedChange={(checked) => 
+                        onCheckedChange={(checked) =>
                           setDashboardWidgets({ ...dashboardWidgets, stats: checked })
                         }
                       />
@@ -477,7 +377,7 @@ export default function SettingsPage() {
                       <Switch
                         id="widget-recent"
                         checked={dashboardWidgets.recent}
-                        onCheckedChange={(checked) => 
+                        onCheckedChange={(checked) =>
                           setDashboardWidgets({ ...dashboardWidgets, recent: checked })
                         }
                       />
@@ -493,7 +393,7 @@ export default function SettingsPage() {
                       <Switch
                         id="widget-charts"
                         checked={dashboardWidgets.charts}
-                        onCheckedChange={(checked) => 
+                        onCheckedChange={(checked) =>
                           setDashboardWidgets({ ...dashboardWidgets, charts: checked })
                         }
                       />
@@ -505,7 +405,7 @@ export default function SettingsPage() {
 
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium">Configurazione Report</h4>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="report-layout">Layout Report</Label>
                     <Select value={reportLayout} onValueChange={setReportLayout}>
@@ -525,7 +425,7 @@ export default function SettingsPage() {
                     <p className="text-sm text-muted-foreground mb-2">
                       Seleziona quali metriche includere nei report
                     </p>
-                    
+
                     <div className="grid grid-cols-2 gap-3">
                       {[
                         { id: 'total', label: 'Totale Candidati' },
@@ -635,8 +535,8 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <Button 
-                    onClick={handleChangePassword} 
+                  <Button
+                    onClick={handleChangePassword}
                     disabled={isLoading || !newPassword || !confirmPassword}
                   >
                     Aggiorna Password
