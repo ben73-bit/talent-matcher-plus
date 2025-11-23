@@ -62,12 +62,10 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
     lastName: "",
     email: "",
     phone: "",
-    position: "",
     company: "",
     experience: "",
     skills: [] as string[],
     notes: "",
-    // databaseId: "" Rimosso
   });
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -208,7 +206,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
         last_name: formData.lastName,
         email: formData.email,
         phone: formData.phone,
-        position: formData.position,
+        // position removed
         company: formData.company,
         experience_years: experienceYears,
         skills: formData.skills,
@@ -216,7 +214,6 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
         status: 'new',
         photo_url: photoUrl || undefined,
         cv_url: cvUrl || undefined,
-        // database_id: formData.databaseId || undefined, Rimosso
       });
 
       if (candidate) {
@@ -226,12 +223,10 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
           lastName: "",
           email: "",
           phone: "",
-          position: "",
           company: "",
           experience: "",
           skills: [],
           notes: "",
-          // databaseId: "" Rimosso
         });
 
         setUploadedPhoto(null);
@@ -444,15 +439,6 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="position">Posizione Ricercata</Label>
-                  <Input
-                    id="position"
-                    value={formData.position}
-                    onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="experience">Esperienza</Label>
                   <Select
                     value={formData.experience}
@@ -473,7 +459,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label>Competenze</Label>
+                <Label>Competenze Chiave</Label>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {formData.skills.map((skill, index) => (
                     <Badge
