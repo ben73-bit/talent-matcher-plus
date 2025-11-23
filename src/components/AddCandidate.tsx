@@ -7,10 +7,8 @@ import {
   MapPin,
   Briefcase,
   FileText,
-  Sparkles,
   ArrowLeft,
   AlertTriangle,
-  Settings, // Aggiunto Settings per l'icona
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
@@ -40,23 +38,17 @@ import {
 } from "@/components/ui/select";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useAuth } from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/useProfile"; // Importato useProfile
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom"; // Importato useNavigate per reindirizzare alle impostazioni
 
 interface AddCandidateProps {
   onBack: () => void;
 }
 
 export const AddCandidate = ({ onBack }: AddCandidateProps) => {
-  const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, session } = useAuth(); // <-- Ottieni la sessione qui
-  const { profile } = useProfile(); // Ottieni il profilo
+  const { user } = useAuth();
   const { createCandidate, candidates } = useCandidates();
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [extractedData, setExtractedData] = useState<any>(null);
   const [uploadedPhoto, setUploadedPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>("");
   const [uploadedCV, setUploadedCV] = useState<File | null>(null);
@@ -77,9 +69,6 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
     notes: "",
     // databaseId: "" Rimosso
   });
-
-  // Check if AI keys are configured
-  const isAIConfigured = !!profile?.openai_api_key || !!profile?.google_ai_api_key;
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -121,78 +110,24 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
     });
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isAIConfigured) {
-      toast({
-        title: "Configurazione AI mancante",
-        description: "Per analizzare il CV, devi configurare le chiavi API nelle Impostazioni.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleCVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     if (file.type !== 'application/pdf') {
       toast({
         title: "Errore",
-        description: "Per favore carica solo file PDF",
+        description: "Per favori carica solo file PDF",
         variant: "destructive",
       });
       return;
     }
 
     setUploadedCV(file);
-    setIsProcessing(true);
-
-    try {
-      console.log('Starting CV analysis with file:', file.name);
-
-      // Create FormData to send the file
-      const formDataToSend = new FormData();
-      formDataToSend.append('file', file);
-
-      // Usa l'access_token dalla sessione ottenuta tramite useAuth
-      const accessToken = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-cv`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: formDataToSend,
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        // Se la risposta HTTP non è OK, o se la funzione Edge restituisce success: false
-        throw new Error(data.error || `Errore HTTP ${response.status} durante l'analisi del CV.`);
-      }
-
-      const extractedData = data.data;
-      setExtractedData(extractedData);
-      setFormData(prev => ({ ...prev, ...extractedData }));
-
-      toast({
-        title: "CV Analizzato",
-        description: "Le informazioni sono state estratte automaticamente dal CV",
-      });
-
-    } catch (error) {
-      console.error('Error parsing CV:', error);
-      toast({
-        title: "Errore",
-        description: error instanceof Error ? error.message : "Errore nell'analisi del CV",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+    toast({
+      title: "CV Selezionato",
+      description: "Il file verrà caricato al salvataggio del candidato",
+    });
   };
 
   const checkForDuplicates = () => {
@@ -298,7 +233,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
           notes: "",
           // databaseId: "" Rimosso
         });
-        setExtractedData(null);
+
         setUploadedPhoto(null);
         setPhotoPreview("");
         setUploadedCV(null);
@@ -361,95 +296,10 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* CV Upload */}
-        <Card className="lg:col-span-1 bg-gradient-card border-0 shadow-soft">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Sparkles className="mr-2 h-5 w-5 text-primary" />
-              AI CV Parser
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!isAIConfigured && (
-              <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg space-y-3">
-                <div className="flex items-center text-destructive text-sm font-medium">
-                  <AlertTriangle className="mr-2 h-4 w-4" />
-                  Configurazione AI Obbligatoria
-                </div>
-                <p className="text-sm text-destructive/90">
-                  Per utilizzare l'analisi automatica del CV, devi configurare almeno una chiave API (OpenAI o Google AI) nelle impostazioni.
-                </p>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => navigate('/settings')}
-                  className="w-full"
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  Vai alle Impostazioni
-                </Button>
-              </div>
-            )}
-
-            <div className="text-center">
-              <div className={`border-2 border-dashed rounded-lg p-8 transition-fast ${isAIConfigured
-                ? 'border-border hover:border-primary/50'
-                : 'border-muted-foreground/30 bg-muted/20 cursor-not-allowed'
-                }`}>
-                <Upload className={`h-12 w-12 mx-auto mb-4 ${isAIConfigured ? 'text-muted-foreground' : 'text-muted-foreground/50'}`} />
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Carica CV PDF</p>
-                  <p className="text-xs text-muted-foreground">
-                    L'AI estrarrà automaticamente le informazioni
-                  </p>
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    id="cv-upload"
-                    disabled={isProcessing || !isAIConfigured}
-                  />
-                  <Button
-                    asChild
-                    variant="outline"
-                    disabled={isProcessing || !isAIConfigured}
-                    className="mt-2"
-                  >
-                    <label htmlFor="cv-upload" className={`cursor-pointer ${!isAIConfigured ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                      {isProcessing ? "Elaborazione..." : "Seleziona File"}
-                    </label>
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {isProcessing && (
-              <div className="text-center space-y-3">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-                <p className="text-sm text-muted-foreground">
-                  Analizzando il CV con AI...
-                </p>
-              </div>
-            )}
-
-            {extractedData && (
-              <div className="space-y-3 p-4 bg-success-light/50 rounded-lg border border-success/20">
-                <div className="flex items-center text-success text-sm font-medium">
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Dati estratti automaticamente
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Verifica e modifica i dati se necessario nel form accanto
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      <div className="max-w-4xl mx-auto">
 
         {/* Form */}
-        <Card className="lg:col-span-2 bg-gradient-card border-0 shadow-soft">
+        <Card className="bg-gradient-card border-0 shadow-soft">
           <CardHeader>
             <CardTitle className="flex items-center">
               <User className="mr-2 h-5 w-5 text-primary" />
@@ -493,6 +343,47 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
                     <p className="text-xs text-muted-foreground mt-1">
                       JPG, PNG o WEBP (max 5MB)
                     </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Curriculum Vitae (PDF)</Label>
+                <div className="flex items-center space-x-4">
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={handleCVUpload}
+                      className="hidden"
+                      id="cv-upload-manual"
+                    />
+                    <div className="flex items-center gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        asChild
+                      >
+                        <label htmlFor="cv-upload-manual" className="cursor-pointer flex items-center">
+                          <FileText className="mr-2 h-4 w-4" />
+                          {uploadedCV ? "Cambia CV" : "Carica CV"}
+                        </label>
+                      </Button>
+                      {uploadedCV && (
+                        <span className="text-sm text-muted-foreground flex items-center">
+                          {uploadedCV.name}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="ml-2 h-6 w-6 p-0 text-destructive"
+                            onClick={() => setUploadedCV(null)}
+                          >
+                            ×
+                          </Button>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -643,10 +534,10 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
             </form>
           </CardContent>
         </Card>
-      </div >
+      </div>
 
       {/* Image Crop Dialog */}
-      < ImageCropDialog
+      <ImageCropDialog
         open={cropDialogOpen}
         onOpenChange={setCropDialogOpen}
         imageSrc={tempPhotoSrc}
@@ -654,7 +545,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
       />
 
       {/* Duplicate Warning Dialog */}
-      < AlertDialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen} >
+      <AlertDialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -706,22 +597,7 @@ export const AddCandidate = ({ onBack }: AddCandidateProps) => {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog >
-
-      {/* Features Info */}
-      < Card className="bg-primary-light border-primary/20 shadow-soft" >
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-3 text-primary">
-            <Sparkles className="h-5 w-5" />
-            <div>
-              <p className="font-medium">Funzionalità AI Avanzate</p>
-              <p className="text-sm text-primary/80">
-                Il sistema estrarrà automaticamente nome, email, competenze, esperienza e altro dal CV PDF caricato
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card >
-    </div >
+      </AlertDialog>
+    </div>
   );
 };
