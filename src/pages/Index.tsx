@@ -8,7 +8,8 @@ import { AddCandidate } from "@/components/AddCandidate";
 import { EditCandidate } from "@/components/EditCandidate";
 import { CandidateDetailsDialog } from "@/components/CandidateDetailsDialog";
 import { ScheduleInterview } from "@/components/ScheduleInterview";
-import { PositionManager } from "@/components/PositionManager"; // Import PositionManager
+import { PositionManager } from "@/components/PositionManager";
+import { TemplateManager } from "@/components/TemplateManager";
 import { useAuth } from "@/hooks/useAuth";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useJobPositions } from "@/hooks/useJobPositions";
@@ -24,7 +25,6 @@ const Index = () => {
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCandidateId, setEditingCandidateId] = useState<string | null>(null);
-  // const [selectedDatabaseId, setSelectedDatabaseId] = useState<string | null>(null); // Rimosso
 
   const handleViewCandidate = (candidateId: string) => {
     console.log('Viewing candidate:', candidateId);
@@ -46,7 +46,7 @@ const Index = () => {
 
   const selectedCandidate = selectedCandidateId ? getCandidateById(selectedCandidateId) : null;
   const editingCandidate = editingCandidateId ? getCandidateById(editingCandidateId) : null;
-  
+
   console.log('Selected candidate ID:', selectedCandidateId);
   console.log('Selected candidate:', selectedCandidate);
 
@@ -90,7 +90,7 @@ const Index = () => {
               Accedi per gestire i tuoi candidati e posizioni lavorative
             </p>
           </div>
-          <Button 
+          <Button
             onClick={() => navigate('/auth')}
             className="w-full"
             size="lg"
@@ -113,37 +113,28 @@ const Index = () => {
     }
   };
 
-  // const handleViewDatabaseCandidates = (databaseId: string) => { // Rimosso
-  //   setSelectedDatabaseId(databaseId);
-  //   setActiveTab("candidates");
-  // };
-
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
         return <Dashboard onNavigate={setActiveTab} />;
-      // case "databases": // Rimosso
-      //   return <DatabaseManager onViewCandidates={handleViewDatabaseCandidates} />;
       case "candidates":
         return (
-          <CandidateList 
-            onViewCandidate={handleViewCandidate} 
-            // filterDatabaseId={selectedDatabaseId} // Rimosso
-            // onClearFilter={() => setSelectedDatabaseId(null)} // Rimosso
+          <CandidateList
+            onViewCandidate={handleViewCandidate}
           />
         );
       case "add-candidate":
         return <AddCandidate onBack={() => setActiveTab("candidates")} />;
       case "edit-candidate":
         return editingCandidate ? (
-          <EditCandidate 
-            candidate={editingCandidate} 
-            onBack={() => setActiveTab("candidates")} 
+          <EditCandidate
+            candidate={editingCandidate}
+            onBack={() => setActiveTab("candidates")}
             onSave={handleSaveEdit}
           />
         ) : null;
       case "positions":
-        return <PositionManager />; // Render the new component
+        return <PositionManager />;
       case "interviews":
         return <ScheduleInterview onBack={() => setActiveTab("dashboard")} />;
       case "reports":
@@ -156,14 +147,7 @@ const Index = () => {
           </div>
         );
       case "templates":
-        return (
-          <div className="flex items-center justify-center h-96">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl font-bold text-foreground">Template</h2>
-              <p className="text-muted-foreground">Funzionalità in arrivo...</p>
-            </div>
-          </div>
-        );
+        return <TemplateManager />;
       default:
         return <Dashboard onNavigate={setActiveTab} />;
     }
@@ -173,8 +157,8 @@ const Index = () => {
     <div className="h-screen flex flex-col bg-background">
       <Navigation onProfileClick={() => navigate('/profile')} />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar 
-          activeTab={activeTab} 
+        <Sidebar
+          activeTab={activeTab}
           onTabChange={handleTabChange}
           candidatesCount={candidates.length}
           positionsCount={positions.length}
@@ -183,7 +167,7 @@ const Index = () => {
           {renderContent()}
         </main>
       </div>
-      <CandidateDetailsDialog 
+      <CandidateDetailsDialog
         candidate={selectedCandidate}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
