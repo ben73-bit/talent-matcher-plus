@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import {
   Search,
-  Filter,
   Download,
   MoreVertical,
   Mail,
@@ -250,7 +249,6 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("recent");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -396,10 +394,6 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
               <Download className="mr-2 h-4 w-4" />
               Esporta
             </Button>
-            <Button variant="outline" onClick={() => setShowAdvancedFilters(true)}>
-              <Filter className="mr-2 h-4 w-4" />
-              Filtri Avanzati
-            </Button>
           </div>
         </motion.div>
 
@@ -531,50 +525,6 @@ export const CandidateList = ({ onViewCandidate }: CandidateListProps) => {
             )}
           </SortableContext>
         )}
-
-        <Dialog open={showAdvancedFilters} onOpenChange={setShowAdvancedFilters}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Filtri Avanzati</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">Nuovo</SelectItem>
-                    <SelectItem value="contacted">Contattato</SelectItem>
-                    <SelectItem value="interviewed">Intervistato</SelectItem>
-                    <SelectItem value="hired">Assunto</SelectItem>
-                    <SelectItem value="rejected">Rifiutato</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Posizione</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona posizione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from(new Set(candidates.map(c => c.position))).map(pos => (
-                      <SelectItem key={pos} value={pos || ''}>{pos}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button className="w-full" onClick={() => {
-                toast({ title: 'Filtri applicati', description: 'I filtri avanzati sono stati applicati' });
-                setShowAdvancedFilters(false);
-              }}>
-                Applica Filtri
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         <EmailModal
           open={showEmailModal}
