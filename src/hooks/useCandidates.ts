@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from '@/components/ui/use-toast';
@@ -19,7 +19,7 @@ export interface Candidate {
   photo_url?: string;
   cv_url?: string;
   order_index?: number;
-  database_id?: string; // Mantenuto per compatibilità con la tabella DB, ma non usato nell'UI
+  database_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -37,7 +37,6 @@ export interface CreateCandidateData {
   status?: 'new' | 'contacted' | 'interviewed' | 'hired' | 'rejected';
   photo_url?: string;
   cv_url?: string;
-  // database_id?: string; Rimosso
 }
 
 export interface UpdateCandidateData {
@@ -53,26 +52,19 @@ export interface UpdateCandidateData {
   status?: 'new' | 'contacted' | 'interviewed' | 'hired' | 'rejected';
   photo_url?: string;
   cv_url?: string;
-  // database_id?: string; Rimosso
 }
 
 export function useCandidates() {
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch candidates
-  const fetchCandidates = async () => {
-    if (!user) {
-      setCandidates([]);
-      setLoading(false);
-      return;
-    }
+  const { data: candidates = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ['candidates', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
 
-    try {
-      setLoading(true);
-      // Ora recupera solo i candidati dell'utente corrente (RLS gestirà questo)
       const { data, error } = await supabase
         .from('candidates')
         .select('*')
@@ -80,34 +72,25 @@ export function useCandidates() {
         .order('created_at', { ascending: false });
 
       if (error) {
+        console.error('Error fetching candidates:', error);
+        toast({
+          title: "Errore",
+          description: "Impossibile caricare i candidati",
+          variant: "destructive",
+        });
         throw error;
       }
 
-      setCandidates((data || []) as Candidate[]);
-    } catch (error) {
-      console.error('Error fetching candidates:', error);
-      toast({
-        title: "Errore",
-        description: "Impossibile caricare i candidati",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data as Candidate[];
+    },
+    enabled: !!user,
+  });
 
-  // Create candidate
-  const createCandidate = async (candidateData: CreateCandidateData) => {
-    if (!user) {
-      toast({
-        title: "Errore",
-        description: "Devi essere autenticato per aggiungere candidati",
-        variant: "destructive",
-      });
-      return null;
-    }
+  // Create candidate mutation
+  const createMutation = useMutation({
+    mutationFn: async (candidateData: CreateCandidateData) => {
+      if (!user) throw new Error("User not authenticated");
 
-    try {
       const { data, error } = await supabase
         .from('candidates')
         .insert([
@@ -115,127 +98,143 @@ export function useCandidates() {
             ...candidateData,
             user_id: user.id,
             status: candidateData.status || 'new',
-            // Rimosso database_id: null per risolvere l'errore PGRST204
           }
         ])
         .select()
         .single();
 
-      if (error) {
-        // Log the detailed error for debugging
-        console.error('Supabase insertion error details:', error);
-        throw error;
-      }
-
-      setCandidates(prev => [data as Candidate, ...prev]);
-      // NOTE: We skip the success toast here because ImportCandidatesDialog handles the batch success toast.
-      // If this function is called outside of batch import, the caller should handle the toast.
-      
-      return data;
-    } catch (error) {
+      if (error) throw error;
+      return data as Candidate;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
+    },
+    onError: (error) => {
       console.error('Error creating candidate:', error);
-      // Display a more informative error if possible, but keep it generic for batch import context
       toast({
         title: "Errore",
-        description: "Impossibile aggiungere il candidato. Controlla la console per i dettagli.",
+        description: "Impossibile aggiungere il candidato",
         variant: "destructive",
       });
-      return null;
     }
-  };
+  });
 
-  // Update candidate
-  const updateCandidate = async (id: string, updates: UpdateCandidateData) => {
-    if (!user) {
-      toast({
-        title: "Errore",
-        description: "Utente non autenticato",
-        variant: "destructive",
-      });
-      return null;
-    }
-    
-    try {
-      // Rimuovo l'assegnazione esplicita di database_id: null per evitare potenziali conflitti
-      // e mi affido al fatto che database_id non è in UpdateCandidateData.
-      
+  // Update candidate mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: UpdateCandidateData }) => {
+      if (!user) throw new Error("User not authenticated");
+
       const { data, error } = await supabase
         .from('candidates')
-        .update(updates) // Uso direttamente 'updates'
+        .update(updates)
         .eq('id', id)
-        .eq('user_id', user.id) // Assicuro che user.id sia usato
+        .eq('user_id', user.id)
         .select()
         .single();
 
-      if (error) {
-        throw error;
-      }
-
-      setCandidates(prev => 
-        prev.map(candidate => 
-          candidate.id === id ? data as Candidate : candidate
-        )
-      );
-
+      if (error) throw error;
+      return data as Candidate;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
       toast({
         title: "Successo",
         description: "Candidato aggiornato con successo",
       });
-
-      return data;
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Error updating candidate:', error);
       toast({
         title: "Errore",
         description: "Impossibile aggiornare il candidato",
         variant: "destructive",
       });
-      return null;
     }
-  };
+  });
 
-  // Delete candidate
-  const deleteCandidate = async (id: string) => {
-    try {
+  // Delete candidate mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!user) throw new Error("User not authenticated");
+
       const { error } = await supabase
         .from('candidates')
         .delete()
         .eq('id', id)
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
-      if (error) {
-        throw error;
-      }
-
-      setCandidates(prev => prev.filter(candidate => candidate.id !== id));
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
       toast({
         title: "Successo",
         description: "Candidato eliminato con successo",
       });
-
-      return true;
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Error deleting candidate:', error);
       toast({
         title: "Errore",
         description: "Impossibile eliminare il candidato",
         variant: "destructive",
       });
+    }
+  });
+
+  // Reorder candidates mutation
+  const reorderMutation = useMutation({
+    mutationFn: async (reorderedCandidates: Candidate[]) => {
+      if (!user) throw new Error("User not authenticated");
+
+      const updates = reorderedCandidates.map((candidate, index) =>
+        supabase
+          .from('candidates')
+          .update({ order_index: index } as any)
+          .eq('id', candidate.id)
+          .eq('user_id', user.id)
+      );
+
+      await Promise.all(updates);
+      return reorderedCandidates;
+    },
+    onSuccess: (newCandidates) => {
+      // Optimistically update or just invalidate
+      queryClient.setQueryData(['candidates', user?.id], newCandidates);
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
+    },
+    onError: (error) => {
+      console.error('Error reordering candidates:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile riordinare i candidati",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Wrapper functions to maintain interface compatibility
+  const createCandidate = async (data: CreateCandidateData) => {
+    return await createMutation.mutateAsync(data);
+  };
+
+  const updateCandidate = async (id: string, updates: UpdateCandidateData) => {
+    return await updateMutation.mutateAsync({ id, updates });
+  };
+
+  const deleteCandidate = async (id: string) => {
+    try {
+      await deleteMutation.mutateAsync(id);
+      return true;
+    } catch {
       return false;
     }
   };
 
-  // Get candidate by ID
-  const getCandidateById = (id: string) => {
-    return candidates.find(candidate => candidate.id === id);
-  };
-
-  // Get candidates by status
-  const getCandidatesByStatus = (status: Candidate['status']) => {
-    return candidates.filter(candidate => candidate.status === status);
-  };
-
   const updateCandidateOrder = async (candidateId: string, newOrderIndex: number) => {
+    // This was a specific update, but we can just invalidate or implement a specific mutation if needed.
+    // For now, let's just do the direct update and invalidate.
     try {
       const { error } = await supabase
         .from('candidates')
@@ -243,45 +242,30 @@ export function useCandidates() {
         .eq('id', candidateId)
         .eq('user_id', user?.id);
 
-      if (error) {
-        throw error;
-      }
-
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
       return true;
     } catch (error) {
       console.error('Error updating candidate order:', error);
-      toast({
-        title: "Errore",
-        description: "Impossibile aggiornare l'ordine del candidato",
-        variant: "destructive",
-      });
       return false;
     }
   };
 
-  const reorderCandidates = async (reorderedCandidates: Candidate[]) => {
+  const reorderCandidates = async (candidates: Candidate[]) => {
     try {
-      const updates = reorderedCandidates.map((candidate, index) =>
-        supabase
-          .from('candidates')
-          .update({ order_index: index } as any)
-          .eq('id', candidate.id)
-          .eq('user_id', user?.id)
-      );
-
-      await Promise.all(updates);
-      setCandidates(reorderedCandidates);
-
+      await reorderMutation.mutateAsync(candidates);
       return true;
-    } catch (error) {
-      console.error('Error reordering candidates:', error);
-      toast({
-        title: "Errore",
-        description: "Impossibile riordinare i candidati",
-        variant: "destructive",
-      });
+    } catch {
       return false;
     }
+  };
+
+  const getCandidateById = (id: string) => {
+    return candidates.find(candidate => candidate.id === id);
+  };
+
+  const getCandidatesByStatus = (status: Candidate['status']) => {
+    return candidates.filter(candidate => candidate.status === status);
   };
 
   const getStats = () => {
@@ -295,10 +279,6 @@ export function useCandidates() {
     };
   };
 
-  useEffect(() => {
-    fetchCandidates();
-  }, [user]);
-
   return {
     candidates,
     loading,
@@ -310,7 +290,7 @@ export function useCandidates() {
     getStats,
     updateCandidateOrder,
     reorderCandidates,
-    refetch: fetchCandidates,
-    fetchByDatabase: fetchCandidates, // Mantenuto per non rompere l'interfaccia, ma ora ignora l'argomento
+    refetch,
+    fetchByDatabase: refetch, // Alias for compatibility
   };
 }
